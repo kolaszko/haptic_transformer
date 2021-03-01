@@ -1,7 +1,6 @@
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 import pickle
-import matplotlib.pyplot as plt
 
 
 class HapticDataset(Dataset):
