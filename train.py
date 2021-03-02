@@ -14,12 +14,12 @@ def main(args):
     print(device)
 
     train_ds = HapticDataset(args.dataset_path, 'train_ds')
-    train_dataloader = DataLoader(train_ds, batch_size=16, shuffle=True)
+    train_dataloader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True)
 
     val_ds = HapticDataset(args.dataset_path, 'val_ds')
-    val_dataloader = DataLoader(val_ds, batch_size=16, shuffle=True)
+    val_dataloader = DataLoader(val_ds, batch_size=args.batch_size, shuffle=True)
 
-    model = HAPTR(8, 78, 6, 6)
+    model = HAPTR(8, 240, 8, 8)
     model.to(device)
 
     criterion = nn.CrossEntropyLoss()
@@ -55,8 +55,8 @@ def main(args):
             running_loss += loss.item()
             mean_loss += loss.item()
 
-            if step % 100 == 99:
-                writer.add_scalar('running_loss/train', running_loss / 100, train_step)
+            if step % 10 == 9:
+                writer.add_scalar('running_loss/train', running_loss / 10, train_step)
                 running_loss = 0.0
                 train_step += 1
 
@@ -82,8 +82,8 @@ def main(args):
 
                 running_loss += loss.item()
                 mean_loss += loss.item()
-                if step % 100 == 99:
-                    writer.add_scalar('running_loss/val', running_loss / 100, val_step)
+                if step % 10 == 9:
+                    writer.add_scalar('running_loss/val', running_loss / 10, val_step)
                     running_loss = 0.0
                     val_step += 1
 
@@ -95,7 +95,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset-path', type=str, required=True)
     parser.add_argument('--epochs', type=int, default=200)
-    parser.add_argument('--batch-size', type=int, default=16)
+    parser.add_argument('--batch-size', type=int, default=64)
 
     args, _ = parser.parse_known_args()
     main(args)

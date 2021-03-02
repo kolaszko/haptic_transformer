@@ -15,8 +15,10 @@ class HAPTR(nn.Module):
         encoder_layer = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=nheads)
         self.transformer = nn.TransformerEncoder(encoder_layer, num_encoder_layers)
         self.mlp_head = nn.Sequential(
-            nn.LayerNorm(hidden_dim),
-            nn.Linear(hidden_dim, num_classes)
+            nn.LayerNorm(hidden_dim*64),
+            nn.Linear(hidden_dim*64, hidden_dim*32),
+            nn.LayerNorm(hidden_dim * 32),
+            nn.Linear(hidden_dim * 32, num_classes)
         )
 
 
@@ -24,7 +26,7 @@ class HAPTR(nn.Module):
         x = self.signal_encoder(inputs)
         x = self.pos_encoding(x.flatten(2))
         x = self.transformer(x)
-        x = x.mean(dim=1)
+        x = x.flatten(1)
         x = self.mlp_head(x)
 
         return x
