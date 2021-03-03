@@ -1,32 +1,43 @@
-import torch
 import torch.nn as nn
 
-from .positional_encoding import PositionalEncoding
-from .signal_encoder import SignalEncoder
+from .signal_encoder import SignalEncoderLinear
 
 
 class HAPTR(nn.Module):
-    def __init__(self, num_classes, hidden_dim, nheads, num_encoder_layers):
+    def __init__(self, num_classes, projection_dim, hidden_dim, nheads, num_encoder_layers, mlp_head_dims=(2048, 1024),
+                 dropout=0.5):
         super().__init__()
 
-        self.pos_encoding = PositionalEncoding(hidden_dim)
-        self.signal_encoder = SignalEncoder()
+        self.signal_encoder = SignalEncoderLinear(hidden_dim, projection_dim)
 
         encoder_layer = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=nheads)
         self.transformer = nn.TransformerEncoder(encoder_layer, num_encoder_layers)
+
         self.mlp_head = nn.Sequential(
-            nn.LayerNorm(hidden_dim*64),
-            nn.Linear(hidden_dim*64, hidden_dim*32),
-            nn.LayerNorm(hidden_dim * 32),
-            nn.Linear(hidden_dim * 32, num_classes)
+            nn.Linear(hidden_dim * projection_dim, mlp_head_dims[0]),
+            nn.BatchNorm1d(mlp_head_dims[0]),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(mlp_head_dims[0], mlp_head_dims[1]),
+            nn.BatchNorm1d(mlp_head_dims[1]),
+            nn.GELU(),
+            nn.Dropout(dropout)
         )
 
+        self.dropout = nn.Dropout(dropout)
+        self.classifier = nn.Linear(mlp_head_dims[1], num_classes)
 
     def forward(self, inputs):
         x = self.signal_encoder(inputs)
-        x = self.pos_encoding(x.flatten(2))
+
+        x = x.squeeze(1).permute(0, 2, 1)
+
         x = self.transformer(x)
+
         x = x.flatten(1)
+        x = self.dropout(x)
+
         x = self.mlp_head(x)
+        x = self.classifier(x)
 
         return x
