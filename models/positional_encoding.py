@@ -5,10 +5,8 @@ import math
 
 class PositionalEncoding(nn.Module):
 
-    def __init__(self, d_model, dropout=0.1, max_len=5000):
+    def __init__(self, d_model, max_len=5000):
         super(PositionalEncoding, self).__init__()
-
-        self.dropout = nn.Dropout(p=dropout)
 
         pe = torch.zeros(max_len, d_model)
         position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
@@ -19,4 +17,18 @@ class PositionalEncoding(nn.Module):
 
     def forward(self, x):
         x = torch.add(x, self.pe[:x.size(-2), :])
-        return self.dropout(x)
+        return x
+
+
+class LearnablePositionalEncoding(nn.Module):
+
+    def __init__(self, dict_size=128, num_pos_feats=16):
+        super().__init__()
+        self.embed = nn.Embedding(dict_size, num_pos_feats)
+
+    def forward(self, x):
+        w = x.shape[-2]
+        i = torch.arange(w, device=x.device)
+        emb = self.embed(i)
+        x = torch.add(x, emb)
+        return x

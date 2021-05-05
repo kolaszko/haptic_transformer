@@ -1,3 +1,3 @@
-from .haptr import HAPTR
-from .positional_encoding import PositionalEncoding
+from .haptr import HAPTR, HAPTRLV
+from .positional_encoding import PositionalEncoding, LearnablePositionalEncoding
 from .signal_encoder import SignalEncoderConv, SignalEncoderLinear
