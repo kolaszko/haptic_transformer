@@ -1,15 +1,11 @@
 import argparse
 import os
 
+import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, jaccard_score
 from torch.utils.tensorboard import SummaryWriter
-from torchsummary import summary
-
-import numpy as np
-import pytorch_warmup as warmup
 
 from data import HapticDataset
 from models import HAPTR
