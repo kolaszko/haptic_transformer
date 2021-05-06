@@ -2,33 +2,25 @@ import os
 import time
 
 import numpy as np
-import pandas as pd
 import yaml
+from scipy.stats import kurtosis
+from scipy.stats import skew
 from sklearn.metrics import accuracy_score, confusion_matrix
-from sklearn.pipeline import Pipeline
 from sktime.classification.all import (
-    BOSSEnsemble, ElasticEnsemble, KNeighborsTimeSeriesClassifier, ProximityForest, ROCKETClassifier)
+    ElasticEnsemble, KNeighborsTimeSeriesClassifier, ProximityForest, ROCKETClassifier)
 from sktime.classification.hybrid import HIVECOTEV1
-from sktime.transformations.panel.compose import ColumnConcatenator
+from sktime.utils.data_processing import from_2d_array_to_nested
 
 from data import HapticDataset
 
 
-def pandify_array(data):
-    n_dim = 1
-    if type(data[0]) is np.ndarray and len(data[0].shape) > 1:
-        n_dim = data[0].shape[-1]
-
-    # each modality as a separate pd.Series
-    columns = ["dim_{}".format(i) for i in range(n_dim)]
-    x = pd.DataFrame(columns=columns)
-    for i, signal in enumerate(data):
-        row = list()
-        for d in range(len(columns)):
-            signal_column = pd.Series(signal[:, d])
-            row.append(signal_column)
-        x.loc[i] = row
-    return x
+def get_central_moments(x, axis=1):
+    mean = np.mean(x, axis=axis, keepdims=True)
+    var = np.var(x, axis=axis, keepdims=True)
+    skewness = skew(x, axis=axis)[:, np.newaxis, :]
+    tailedness = kurtosis(x, axis=axis)[:, np.newaxis, :]
+    metrics = np.concatenate([mean, var, skewness, tailedness], axis=axis)
+    return np.reshape(metrics, [metrics.shape[0], metrics.shape[1] * metrics.shape[2]])
 
 
 def main():
@@ -46,47 +38,48 @@ def main():
                            signal_length=config['signal_length'])
 
     # prepare signalsL standardize and create pd.Series
-    x_train = pandify_array([(s['signal'][train_ds.signal_start: train_ds.signal_start + train_ds.signal_length]
-                              - train_ds.mean) / train_ds.std for s in train_ds.signals])
-    x_test = pandify_array([(s['signal'][val_ds.signal_start: val_ds.signal_start + val_ds.signal_length]
-                             - val_ds.mean) / val_ds.std for s in val_ds.signals])
-    y_train = pd.Series([s['label'] for s in train_ds.signals])
-    y_test = pd.Series([s['label'] for s in val_ds.signals])
+    x_train = np.asarray([(s['signal'][train_ds.signal_start: train_ds.signal_start + train_ds.signal_length]
+                           - train_ds.mean) / train_ds.std for s in train_ds.signals])
+    x_test = np.asarray([(s['signal'][val_ds.signal_start: val_ds.signal_start + val_ds.signal_length]
+                          - val_ds.mean) / val_ds.std for s in val_ds.signals])
+
+    x_train = get_central_moments(x_train)
+    x_test = get_central_moments(x_test)
+    x_train = from_2d_array_to_nested(x_train)
+    x_test = from_2d_array_to_nested(x_test)
+    y_train = np.asarray([s['label'] for s in train_ds.signals])
+    y_test = np.asarray([s['label'] for s in val_ds.signals])
 
     # setup the classification pipeline for tested classifiers
-    classifier_configs = (
-        tuple((('concatenate', ColumnConcatenator()), ('classify', KNeighborsTimeSeriesClassifier(n_neighbors=3, n_jobs=10)))),
-        tuple((('concatenate', ColumnConcatenator()), ('classify', ProximityForest(n_jobs=10)))),
-        tuple((('concatenate', ColumnConcatenator()), ('classify', ElasticEnsemble(n_jobs=10)))),
-        tuple((('concatenate', ColumnConcatenator()), ('classify', HIVECOTEV1(n_jobs=10)))),
-        tuple((('concatenate', ColumnConcatenator()), ('classify', BOSSEnsemble(n_jobs=10)))),
-        tuple(('classify', ROCKETClassifier()))
+    classifiers = (
+        KNeighborsTimeSeriesClassifier(n_neighbors=3, n_jobs=10),
+        ROCKETClassifier(),
+        ProximityForest(n_jobs=10),
+        ElasticEnsemble(n_jobs=10),
+        HIVECOTEV1(n_jobs=10)
     )
 
     # run train / test
-    log_file = './log_{}'.format(time.time())
-    for i, config in enumerate(classifier_configs):
-        print("********************************", file=open(log_file, 'a'))
-        print("Running:\n{}\n".format(config), file=open(log_file, 'a'))
-        clf = Pipeline(config)
+    for i, clf in enumerate(classifiers):
+        print("********************************")
+        print("Running:\n{}\n".format(clf))
 
         # fit the classifier
         tic = time.time()
         clf.fit(x_train, y_train)
         toc = time.time()
-        print("Elapsed fit time: {}".format(toc - tic), file=open(log_file, 'a'))
+        print("Elapsed fit time: {}".format(toc - tic))
 
         # test
         tic = time.time()
         y_pred = clf.predict(x_test)
         toc = time.time()
-        print("Elapsed predict time: {}".format(toc - tic), file=open(log_file, 'a'))
+        print("Elapsed predict time: {}".format(toc - tic))
 
         # log results
-        print("Accuracy: {}".format(accuracy_score(y_test, y_pred)), file=open(log_file, 'a'))
-        print("Confusion matrix:\n{}".format(confusion_matrix(y_test, y_pred)), file=open(log_file, 'a'))
-        print("********************************", file=open(log_file, 'a'))
-        print("{} Done!\n".format(config))
+        print("Accuracy: {}".format(accuracy_score(y_test, y_pred)))
+        print("Confusion matrix:\n{}".format(confusion_matrix(y_test, y_pred)))
+        print("********************************")
 
 
 if __name__ == '__main__':
