@@ -3,24 +3,14 @@ import time
 
 import numpy as np
 import yaml
-from scipy.stats import kurtosis
-from scipy.stats import skew
 from sklearn.metrics import accuracy_score, confusion_matrix
 from sktime.classification.all import (
     ElasticEnsemble, KNeighborsTimeSeriesClassifier, ProximityForest, ROCKETClassifier)
+from sktime.classification.compose import ColumnEnsembleClassifier
 from sktime.classification.hybrid import HIVECOTEV1
-from sktime.utils.data_processing import from_2d_array_to_nested
+from sktime.utils.data_processing import from_3d_numpy_to_nested
 
 from data import HapticDataset
-
-
-def get_central_moments(x, axis=1):
-    mean = np.mean(x, axis=axis, keepdims=True)
-    var = np.var(x, axis=axis, keepdims=True)
-    skewness = skew(x, axis=axis)[:, np.newaxis, :]
-    tailedness = kurtosis(x, axis=axis)[:, np.newaxis, :]
-    metrics = np.concatenate([mean, var, skewness, tailedness], axis=axis)
-    return np.reshape(metrics, [metrics.shape[0], metrics.shape[1] * metrics.shape[2]])
 
 
 def main():
@@ -43,26 +33,32 @@ def main():
     x_test = np.asarray([(s['signal'][val_ds.signal_start: val_ds.signal_start + val_ds.signal_length]
                           - val_ds.mean) / val_ds.std for s in val_ds.signals])
 
-    x_train = get_central_moments(x_train)
-    x_test = get_central_moments(x_test)
-    x_train = from_2d_array_to_nested(x_train)
-    x_test = from_2d_array_to_nested(x_test)
+    x_train = from_3d_numpy_to_nested(x_train.transpose((0, 2, 1)))
+    x_test = from_3d_numpy_to_nested(x_test.transpose((0, 2, 1)))
     y_train = np.asarray([s['label'] for s in train_ds.signals])
     y_test = np.asarray([s['label'] for s in val_ds.signals])
 
-    # setup the classification pipeline for tested classifiers
     classifiers = (
-        KNeighborsTimeSeriesClassifier(n_neighbors=3, n_jobs=10),
         ROCKETClassifier(),
+        KNeighborsTimeSeriesClassifier(n_neighbors=3, n_jobs=10),
         ProximityForest(n_jobs=10),
         ElasticEnsemble(n_jobs=10),
         HIVECOTEV1(n_jobs=10)
     )
 
     # run train / test
-    for i, clf in enumerate(classifiers):
+    for i, c in enumerate(classifiers):
         print("********************************")
-        print("Running:\n{}\n".format(clf))
+        print("Running:\n{}\n".format(c))
+
+        # apply classifier for each column or apply classifier for the multivariate data
+        if c.capabilities["multivariate"]:
+            clf = c
+        else:
+            estimators = [("{}".format(k), c, [k]) for k in range(x_train.shape[-1])]
+            clf = ColumnEnsembleClassifier(
+                estimators=estimators
+            )
 
         # fit the classifier
         tic = time.time()
