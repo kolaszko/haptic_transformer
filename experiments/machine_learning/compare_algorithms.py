@@ -4,11 +4,10 @@ import time
 import numpy as np
 import yaml
 from sklearn.metrics import accuracy_score, confusion_matrix
-from sktime.classification.all import (
-    ElasticEnsemble, KNeighborsTimeSeriesClassifier, ProximityForest, ROCKETClassifier)
+from sktime.classification.all import (KNeighborsTimeSeriesClassifier, ProximityForest, ROCKETClassifier, BOSSEnsemble)
 from sktime.classification.compose import ColumnEnsembleClassifier
-from sktime.classification.hybrid import HIVECOTEV1
 from sktime.utils.data_processing import from_3d_numpy_to_nested
+from sktime.distances.elastic import dtw_distance
 
 from data import HapticDataset
 
@@ -39,11 +38,10 @@ def main():
     y_test = np.asarray([s['label'] for s in val_ds.signals])
 
     classifiers = (
+        ProximityForest(n_jobs=10, distance_measure=dtw_distance),
+        BOSSEnsemble(n_jobs=10),
         ROCKETClassifier(),
-        KNeighborsTimeSeriesClassifier(n_neighbors=3, n_jobs=10),
-        ProximityForest(n_jobs=10),
-        ElasticEnsemble(n_jobs=10),
-        HIVECOTEV1(n_jobs=10)
+        KNeighborsTimeSeriesClassifier(n_neighbors=3, n_jobs=10)
     )
 
     # run train / test
