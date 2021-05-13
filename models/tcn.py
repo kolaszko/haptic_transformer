@@ -13,7 +13,7 @@ class Chomp1d(nn.Module):
 
 
 class TemporalBlock(nn.Module):
-    def __init__(self, n_inputs, n_outputs, num_classes, kernel_size, stride, dilation, padding, dropout=0.2):
+    def __init__(self, n_inputs, n_outputs, num_classes, ff, kernel_size, stride, dilation, padding, dropout=0.2):
         super(TemporalBlock, self).__init__()
         self.conv1 = weight_norm(nn.Conv1d(n_inputs, n_outputs, kernel_size,
                                            stride=stride, padding=padding, dilation=dilation))
@@ -31,12 +31,6 @@ class TemporalBlock(nn.Module):
                                  self.conv2, self.chomp2, self.relu2, self.dropout2)
         self.downsample = nn.Conv1d(n_inputs, n_outputs, 1) if n_inputs != n_outputs else None
 
-        lin_dim = n_outputs * 6
-        self.classifier = nn.Sequential(
-            nn.Linear(lin_dim, lin_dim // 2),
-            nn.Dropout(),
-            nn.Linear(lin_dim // 2, num_classes),
-        )
         self.relu = nn.ReLU()
         self.init_weights()
 
@@ -49,13 +43,11 @@ class TemporalBlock(nn.Module):
     def forward(self, x):
         out = self.net(x)
         res = x if self.downsample is None else self.downsample(x)
-        o =  self.relu(out + res)
-        o = o.flatten(1, -1)
-        return self.classifier(o)
+        return self.relu(out + res)
 
 
 class TemporalConvNet(nn.Module):
-    def __init__(self, num_inputs, num_channels, num_classes, kernel_size=2, dropout=0.2):
+    def __init__(self, num_inputs, num_channels, num_classes, ff, kernel_size=2, dropout=0.2):
         super(TemporalConvNet, self).__init__()
         layers = []
         num_levels = len(num_channels)
@@ -63,10 +55,19 @@ class TemporalConvNet(nn.Module):
             dilation_size = 2 ** i
             in_channels = num_inputs if i == 0 else num_channels[i-1]
             out_channels = num_channels[i]
-            layers += [TemporalBlock(in_channels, out_channels, num_classes, kernel_size, stride=1, dilation=dilation_size,
+            layers += [TemporalBlock(in_channels, out_channels, num_classes, ff, kernel_size, stride=1, dilation=dilation_size,
                                      padding=(kernel_size-1) * dilation_size, dropout=dropout)]
 
         self.network = nn.Sequential(*layers)
+        lin_dim = num_channels[-1] * 160
+        self.classifier = nn.Sequential(
+            nn.Dropout(dropout),
+            nn.Linear(lin_dim, num_classes),
+        )
 
     def forward(self, x):
-        return self.network(x)
+        x = x.permute(0, 2, 1)
+        o = self.network(x)
+        o = o.flatten(1, -1)
+        # o = torch.mean(o, dim=1)
+        return self.classifier(o)
