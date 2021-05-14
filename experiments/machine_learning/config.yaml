@@ -1,5 +1,5 @@
 dataset_folder: "/media/mbed/internal/backup"
-dataset_file: "rokubimini_lighter.pickle"
+dataset_file: "dataset_160.pickle"
 signal_length: 160
 signal_start: 0
 k_folds: 5
