@@ -3,7 +3,7 @@ import time
 
 import numpy as np
 import yaml
-from sklearn.metrics import accuracy_score, confusion_matrix
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from sktime.classification.all import (KNeighborsTimeSeriesClassifier, ROCKETClassifier)
 from sktime.classification.compose import ColumnEnsembleClassifier
 from sktime.utils.data_processing import from_3d_numpy_to_nested
@@ -89,14 +89,16 @@ def main():
 
         # log results
         acc_val = accuracy_score(y_val, y_val_pred)
-        conf_mat_val = confusion_matrix(y_val, y_val_pred)
+        conf_mat_val = confusion_matrix(y_val, y_val_pred, normalize='true')
         acc_test = accuracy_score(y_test, y_test_pred)
-        conf_mat_test = confusion_matrix(y_test, y_test_pred)
+        conf_mat_test = confusion_matrix(y_test, y_test_pred, normalize='true')
+        test_cls_report = classification_report(y_test, y_test_pred)
 
         print("Validation accuracy: {}".format(acc_val))
         print("Validation confusion matrix:\n{}\n".format(conf_mat_val))
         print("Test accuracy: {}".format(acc_test))
         print("Test confusion matrix:\n{}\n".format(conf_mat_test))
+        print("Classification report:\n{}\n".format(test_cls_report))
         print("Inference time:\n{} +/- {}\n".format(mean_time, std_time))
         print("********************************")
 
