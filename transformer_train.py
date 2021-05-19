@@ -57,7 +57,7 @@ def main(args):
 
     current_time = datetime.now().strftime('%b%d_%H-%M-%S')
     log_dir = os.path.join(
-        'xd_runs', current_time + '_' + socket.gethostname())
+        'haptr_runs', current_time + '_' + socket.gethostname())
 
     model = HAPTR(params['num_classes'], params['projection_dim'],
                   params['sequence_length'], params['nheads'],

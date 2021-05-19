@@ -56,7 +56,7 @@ def main(args):
 
     current_time = datetime.now().strftime('%b%d_%H-%M-%S')
     log_dir = os.path.join(
-        'xd_tcn_runs', current_time + '_' + socket.gethostname())
+        'tcn_runs', current_time + '_' + socket.gethostname())
 
     channel_sizes = [args.nhid] * args.levels
     model = TemporalConvNet(6, channel_sizes, dropout=params['dropout'], ff=params['feed_forward'],
