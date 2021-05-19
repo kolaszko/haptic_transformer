@@ -1,6 +1,7 @@
-import torch
 import torch.nn as nn
 from torch.nn.utils import weight_norm
+
+''' https://github.com/locuslab/TCN '''
 
 
 class Chomp1d(nn.Module):
@@ -53,16 +54,19 @@ class TemporalConvNet(nn.Module):
         num_levels = len(num_channels)
         for i in range(num_levels):
             dilation_size = 2 ** i
-            in_channels = num_inputs if i == 0 else num_channels[i-1]
+            in_channels = num_inputs if i == 0 else num_channels[i - 1]
             out_channels = num_channels[i]
-            layers += [TemporalBlock(in_channels, out_channels, num_classes, ff, kernel_size, stride=1, dilation=dilation_size,
-                                     padding=(kernel_size-1) * dilation_size, dropout=dropout)]
+            layers += [
+                TemporalBlock(in_channels, out_channels, num_classes, ff, kernel_size, stride=1, dilation=dilation_size,
+                              padding=(kernel_size - 1) * dilation_size, dropout=dropout)]
 
         self.network = nn.Sequential(*layers)
         lin_dim = num_channels[-1] * 160
         self.classifier = nn.Sequential(
+            nn.Linear(lin_dim, ff),
+            nn.ReLU(),
             nn.Dropout(dropout),
-            nn.Linear(lin_dim, num_classes),
+            nn.Linear(ff, num_classes),
         )
 
     def forward(self, x):

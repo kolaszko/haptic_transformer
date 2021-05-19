@@ -1,3 +1,0 @@
-python kfold_tcn.py --dataset-path=/home/thing/Datasets/anymal/rokubimini_lighter.pickle --batch-size 1024
-python kfold_tcn.py --dataset-path=/home/thing/Datasets/anymal/rokubimini_lighter.pickle --batch-size 1024 --levels 16 --nhid 50 --feed-forward 256
-python kfold_tcn.py --dataset-path=/home/thing/Datasets/anymal/rokubimini_lighter.pickle --batch-size 1024 --levels 32 --nhid 75 --feed-forward 512

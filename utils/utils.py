@@ -1,19 +1,15 @@
-import os
 import json
+import os
+from collections import OrderedDict
 
 import numpy as np
-import torch
-from sklearn.metrics import confusion_matrix, accuracy_score, jaccard_score
-
 import torch
 import torch.nn as nn
-from torch.autograd import Variable
-
-from collections import OrderedDict
-import numpy as np
+from sklearn.metrics import confusion_matrix, accuracy_score, jaccard_score
 
 
 def summary(model, input_size, batch_size=-1, device="cuda"):
+    ''' https://github.com/sksq96/pytorch-summary '''
 
     def register_hook(module):
 
@@ -42,9 +38,9 @@ def summary(model, input_size, batch_size=-1, device="cuda"):
             summary[m_key]["nb_params"] = params
 
         if (
-            not isinstance(module, nn.Sequential)
-            and not isinstance(module, nn.ModuleList)
-            and not (module == model)
+                not isinstance(module, nn.Sequential)
+                and not isinstance(module, nn.ModuleList)
+                and not (module == model)
         ):
             hooks.append(module.register_forward_hook(hook))
 
@@ -121,6 +117,7 @@ def summary(model, input_size, batch_size=-1, device="cuda"):
     print("----------------------------------------------------------------")
     return trainable_params
 
+
 def save_statistics(y_true, y_pred, model, path, input_size):
     cf_matrix = confusion_matrix(y_true, y_pred)
     accuracy = accuracy_score(y_true, y_pred)
@@ -189,9 +186,9 @@ def validate_and_save(model, ds_loader, name, device, input_size):
         os.makedirs(stat_path)
 
     stats = {
-        'acc' : accuracy,
-        'miou' : miou,
-        'params' : str(trainable_params.cpu().numpy()),
+        'acc': accuracy,
+        'miou': miou,
+        'params': str(trainable_params.cpu().numpy()),
     }
 
     with open(f'{stat_path}/stats.json', 'w') as f:

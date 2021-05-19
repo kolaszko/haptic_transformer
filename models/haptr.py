@@ -5,22 +5,21 @@ from .signal_encoder import SignalEncoderLinear
 
 
 class HAPTR(nn.Module):
-    def __init__(self, num_classes, projection_dim, hidden_dim, nheads, num_encoder_layers, feed_forward,
+    def __init__(self, num_classes, projection_dim, sequence_length, nheads, num_encoder_layers, feed_forward,
                  dropout=0.5):
         super().__init__()
-        self.signal_encoder = SignalEncoderLinear(hidden_dim, projection_dim, learnable=True)
+        self.signal_encoder = SignalEncoderLinear(sequence_length, projection_dim, learnable=True)
         # self.signal_encoder = SignalEncoderConv(hidden_dim, projection_dim, learnable=False)
 
-        # encoder_layer = MyTransformerEncoderLayer(d_model=hidden_dim, nhead=nheads, dropout=dropout, dim_feedforward=1024, activation='gelu')
-        encoder_layer = nn.TransformerEncoderLayer(d_model=projection_dim, nhead=nheads, dropout=dropout, dim_feedforward=feed_forward, activation='gelu')
+        encoder_layer = nn.TransformerEncoderLayer(d_model=projection_dim, nhead=nheads, dropout=dropout,
+                                                   dim_feedforward=feed_forward, activation='gelu')
         encoder_norm = nn.LayerNorm(projection_dim)
         self.transformer = nn.TransformerEncoder(encoder_layer, num_encoder_layers, encoder_norm)
 
         self.mlp_head = nn.Sequential(
             nn.Dropout(0.2),
-            nn.Linear(hidden_dim, num_classes)
+            nn.Linear(sequence_length, num_classes)
         )
-
 
     def forward(self, inputs):
         x = self.signal_encoder(inputs)

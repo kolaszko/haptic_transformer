@@ -1,7 +1,5 @@
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
 
 from .positional_encoding import PositionalEncoding, LearnablePositionalEncoding
 
@@ -16,23 +14,20 @@ class SignalEncoderConv(nn.Module):
         self.bn_2 = nn.BatchNorm2d(16)
         self.conv_3 = nn.Conv2d(16, 64, (3, 1))
         self.bn_3 = nn.BatchNorm2d(64)
-        # self.conv_4 = nn.Conv2d(32, 128, (3, 1))
-        # self.bn_4 = nn.BatchNorm2d(128)
 
         self.max = nn.AdaptiveMaxPool2d(4)
 
         if position:
             if learnable:
-                self.position_embedding = LearnablePositionalEncoding(dict_size=num_patches, num_pos_feats=projection_dim)
+                self.position_embedding = LearnablePositionalEncoding(dict_size=num_patches,
+                                                                      num_pos_feats=projection_dim)
             else:
                 self.position_embedding = PositionalEncoding(projection_dim)
-
 
     def forward(self, inputs):
         x = F.relu(self.bn_1(self.conv_1(inputs.float())))
         x = F.relu(self.bn_2(self.conv_2(x)))
         x = F.relu(self.bn_3(self.conv_3(x)))
-        # x = F.relu(self.bn_4(self.conv_4(x)))
 
         x = self.max(x)
 
@@ -51,26 +46,23 @@ class SignalEncoderLinear(nn.Module):
 
         self.num_patches = num_patches
         self.projection = nn.Sequential(
-            # nn.Linear(modalities, projection_dim // 2),
-            # nn.LayerNorm(projection_dim // 2),
             nn.Linear(modalities, projection_dim),
             nn.LayerNorm(projection_dim)
         )
         if position:
             if learnable:
-                self.position_embedding = LearnablePositionalEncoding(dict_size=num_patches, num_pos_feats=projection_dim)
+                self.position_embedding = LearnablePositionalEncoding(dict_size=num_patches,
+                                                                      num_pos_feats=projection_dim)
             else:
                 self.position_embedding = PositionalEncoding(projection_dim)
-
-        self.dropout = nn.Dropout(0.2)
 
     def forward(self, inputs):
         x = self.projection(inputs.float())
         if self.position_embedding:
             x = self.position_embedding(x)
 
-        # x = self.dropout(x)
         return x
+
 
 class SignalEncoderExperimental(nn.Module):
     def __init__(self, num_patches, projection_dim, position=True, modalities=6, kernel=8):
@@ -82,7 +74,7 @@ class SignalEncoderExperimental(nn.Module):
             nn.Conv1d(1, kernel, (3, 1), padding=(1, 0))
         )
         if position:
-            self.position_embedding = PositionalEncoding(8*6)
+            self.position_embedding = PositionalEncoding(8 * 6)
 
         self.dropout = nn.Dropout(0.2)
         self.projection_dim = projection_dim

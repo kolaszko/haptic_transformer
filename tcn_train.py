@@ -1,21 +1,19 @@
 import argparse
+import json
 import os
 import socket
 import time
 from datetime import datetime
-import json
 
+import numpy as np
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader, ConcatDataset
+from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-from sklearn.model_selection import KFold
-from sklearn.metrics import confusion_matrix, accuracy_score, jaccard_score
-import numpy as np
 
 from data import HapticDataset
-from models import HAPTR, TemporalConvNet
-from utils import validate_and_save, save_statistics
+from models import TemporalConvNet
+from utils import save_statistics, summary
 
 
 def reset_weights(m):
@@ -28,7 +26,7 @@ def reset_weights(m):
 def main(args):
     params = {
         'num_classes': args.num_classes,
-        'hidden_dim': args.hidden_dim,
+        'sequence_length': args.sequence_length,
         'feed_forward': args.feed_forward,
         'levels': args.levels,
         'nhid': args.nhid,
@@ -44,9 +42,9 @@ def main(args):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print(device)
 
-    train_ds = HapticDataset(args.dataset_path, 'train_ds', signal_start=0, signal_length=params['hidden_dim'])
-    val_ds = HapticDataset(args.dataset_path, 'val_ds', signal_start=0, signal_length=params['hidden_dim'])
-    test_ds = HapticDataset(args.dataset_path, 'test_ds', signal_start=0, signal_length=params['hidden_dim'])
+    train_ds = HapticDataset(args.dataset_path, 'train_ds', signal_start=0, signal_length=params['sequence_length'])
+    val_ds = HapticDataset(args.dataset_path, 'val_ds', signal_start=0, signal_length=params['sequence_length'])
+    test_ds = HapticDataset(args.dataset_path, 'test_ds', signal_start=0, signal_length=params['sequence_length'])
 
     train_dataloader = DataLoader(train_ds, batch_size=params['batch_size'], shuffle=True)
     val_dataloader = DataLoader(val_ds, batch_size=params['batch_size'], shuffle=True)
@@ -65,6 +63,8 @@ def main(args):
                             num_classes=params['num_classes'])
 
     model.to(device)
+
+    summary(model, input_size=(160, 6))
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=params['lr'], weight_decay=params['weight_decay'])
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs, eta_min=5e-6)
@@ -212,10 +212,8 @@ def main(args):
 
         writer.flush()
 
-
     with open(os.path.join(log_dir, 'results.json'), 'w') as f:
         f.write(json.dumps(results))
-
 
     results_timer = {}
     dummy_input = torch.randn(1, 160, 6, dtype=torch.float).to(device)
@@ -248,13 +246,13 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset-path', type=str, required=True)
-    parser.add_argument('--epochs', type=int, default=1)
-    parser.add_argument('--batch-size', type=int, default=400)
+    parser.add_argument('--epochs', type=int, default=500)
+    parser.add_argument('--batch-size', type=int, default=256)
     parser.add_argument('--num-classes', type=int, default=8)
-    parser.add_argument('--levels', type=int, default=8)
-    parser.add_argument('--hidden-dim', type=int, default=160)
+    parser.add_argument('--levels', type=int, default=16)
+    parser.add_argument('--sequence-length', type=int, default=160)
     parser.add_argument('--nhid', type=int, default=25)
-    parser.add_argument('--feed-forward', type=int, default=64)
+    parser.add_argument('--feed-forward', type=int, default=256)
     parser.add_argument('--dropout', type=float, default=.2)
     parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--gamma', type=float, default=0.999)
@@ -262,5 +260,3 @@ if __name__ == '__main__':
 
     args, _ = parser.parse_known_args()
     main(args)
-
-
