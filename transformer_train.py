@@ -3,18 +3,35 @@ import json
 import os
 import socket
 import time
+from copy import copy
 from datetime import datetime
 
+import imageio
 import numpy as np
 import torch
 import torch.nn as nn
+from skimage.transform import resize
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
+from torchsummary import summary
 
 from data import HapticDataset
 from models import HAPTR
 from utils import save_statistics
-from torchsummary import summary
+
+
+def save_gif(img_list, folder, epoch, file_suffix="train", w=300, h=400):
+    if len(img_list) > 1:
+        path = os.path.join(folder, f"epoch_{file_suffix}_{epoch:05d}.gif")
+        with imageio.get_writer(path, mode='I') as writer:
+            for img in img_list:
+                img = resize(img, (w, h))
+                img = (img - img.min()) / (img.max() - img.min())
+                img = np.multiply(img, 256).astype(np.uint8)
+                writer.append_data(img)
+        print(f"Saved GIF at {path}.")
+    else:
+        print("Empty img list.")
 
 
 def reset_weights(m):
@@ -94,6 +111,8 @@ def main(args):
 
         for epoch in range(args.epochs):
             print(f'Epoch: {epoch}')
+            train_epoch_gif = list()
+            val_epoch_gif = list()
 
             # Training
             mean_loss = 0.0
@@ -105,7 +124,7 @@ def main(args):
 
                 optimizer.zero_grad()
 
-                out = model(s.unsqueeze(1))
+                out, weights = model(s.unsqueeze(1))
                 loss = criterion(out, labels)
                 loss.backward()
 
@@ -115,8 +134,14 @@ def main(args):
                 correct += (predicted == labels).sum().item()
 
                 mean_loss += loss.item()
-
                 print(f'Running loss training: {loss.item()} in step: {step}')
+
+                attn = copy(weights.detach().cpu().numpy())
+                if args.gif_save and attn.shape[0] == args.batch_size and step % args.gif_interval == 0:
+                    train_epoch_gif.append(attn)
+
+            if args.gif_save:
+                save_gif(train_epoch_gif, args.gif_path, epoch)
 
             writer.add_scalar('loss/train', mean_loss / len(train_ds), epoch)
             writer.add_scalar('accuracy/train', (100 * correct / len(train_ds)), epoch)
@@ -136,7 +161,7 @@ def main(args):
                 for step, data in enumerate(val_dataloader):
                     s, labels = data[0].to(device), data[1].to(device)
 
-                    out = model(s.unsqueeze(1))
+                    out, weights = model(s.unsqueeze(1))
                     loss = criterion(out, labels)
 
                     _, predicted = torch.max(out.data, 1)
@@ -178,7 +203,7 @@ def main(args):
                 for step, data in enumerate(test_dataloader):
                     s, labels = data[0].to(device), data[1].to(device)
 
-                    out = model(s.unsqueeze(1))
+                    out, weights = model(s.unsqueeze(1))
                     loss = criterion(out, labels)
 
                     _, predicted = torch.max(out.data, 1)
@@ -191,6 +216,13 @@ def main(args):
                     mean_loss += loss.item()
 
                     print(f'Running loss test: {loss.item()} in step: {step}')
+
+                    attn = copy(weights.detach().cpu().numpy())
+                    if args.gif_save and attn.shape[0] == args.batch_size and step % args.gif_interval == 0:
+                        val_epoch_gif.append(attn)
+
+                if args.gif_save:
+                    save_gif(val_epoch_gif, args.gif_path, epoch, file_suffix="val")
 
             acc = (100 * correct / len(test_ds))
             if acc > best_acc_test:
@@ -228,7 +260,7 @@ def main(args):
     with torch.no_grad():
         for rep in range(repetitions):
             start_time = time.time()
-            out = model(dummy_input.unsqueeze(1))
+            out, weights = model(dummy_input.unsqueeze(1))
             _, predicted = torch.max(out.data, 1)
             end_time = time.time()
             timings[rep] = (end_time - start_time) * 1000
@@ -260,6 +292,9 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=float, default=5e-4)
     parser.add_argument('--gamma', type=float, default=0.999)
     parser.add_argument('--weight-decay', type=float, default=1e-3)
+    parser.add_argument('--gif-interval', type=int, default=5)
+    parser.add_argument('--gif-save', action='store_true', default=True)
+    parser.add_argument('--gif-path', type=str, default="/media/mbed/internal/backup/haptr")
 
     args, _ = parser.parse_known_args()
     main(args)
