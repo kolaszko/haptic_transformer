@@ -13,7 +13,8 @@ from torch.utils.tensorboard import SummaryWriter
 
 from data import HapticDataset
 from models import HAPTR
-from utils import save_statistics, summary
+from utils import save_statistics
+from torchsummary import summary
 
 
 def reset_weights(m):
