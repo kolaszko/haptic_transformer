@@ -19,18 +19,16 @@ def load_dataset(config):
                                 signal_length=config['signal_length'])
 
     elif config["dataset_type"].lower() == "qcat":
-        dataset_path = os.path.join(config['dataset_folder'], config['dataset_file'])
-        train_ds = QCATDataset(dataset_path, 'train_ds',
+        train_ds = QCATDataset(config['dataset_folder'], 'train_ds',
                                signal_start=config['signal_start'],
                                signal_length=config['signal_length'])
-
-        val_ds = QCATDataset(dataset_path, 'val_ds',
+        val_ds = QCATDataset(config['dataset_folder'], 'val_ds',
                              signal_start=config['signal_start'],
                              signal_length=config['signal_length'])
-
-        test_ds = QCATDataset(dataset_path, 'test_ds',
+        test_ds = QCATDataset(config['dataset_folder'], 'test_ds',
                               signal_start=config['signal_start'],
                               signal_length=config['signal_length'])
+
     else:
         raise NotImplementedError("Dataset not recognized. Allowed options are: QCAT, PUT")
 
