@@ -1,28 +1,11 @@
-import os
-import time
-
 import numpy as np
 import yaml
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from sktime.classification.all import (KNeighborsTimeSeriesClassifier, ROCKETClassifier)
 from sktime.classification.compose import ColumnEnsembleClassifier
-from sktime.utils.data_processing import from_3d_numpy_to_nested
+from sktime.datatypes._panel._convert import from_3d_numpy_to_nested
 
-from data import HapticDataset
-
-
-def measure_inference_time(model, shape=(160, 6), repetitions=300):
-    mock_x = np.zeros(shape=[1, shape[0], shape[1]])
-    mock_x = from_3d_numpy_to_nested(mock_x.transpose((0, 2, 1)))
-
-    performance = list()
-    for x in range(repetitions):
-        tic = time.time()
-        model.predict(mock_x)
-        toc = time.time()
-        performance.append(toc - tic)
-
-    return np.mean(performance), np.std(performance)
+import utils
 
 
 def main():
@@ -30,18 +13,7 @@ def main():
         config = yaml.load(file, Loader=yaml.FullLoader)
 
     # load dataset
-    dataset_path = os.path.join(config['dataset_folder'], config['dataset_file'])
-    train_ds = HapticDataset(dataset_path, 'train_ds',
-                             signal_start=config['signal_start'],
-                             signal_length=config['signal_length'])
-
-    val_ds = HapticDataset(dataset_path, 'val_ds',
-                           signal_start=config['signal_start'],
-                           signal_length=config['signal_length'])
-
-    test_ds = HapticDataset(dataset_path, 'test_ds',
-                            signal_start=config['signal_start'],
-                            signal_length=config['signal_length'])
+    train_ds, val_ds, test_ds = utils.dataset.load_dataset(config)
 
     # feed for classifiers (pd.Series)
     x_train = np.asarray([(s['signal'] - train_ds.mean) / train_ds.std for s in train_ds.signals])
@@ -85,7 +57,7 @@ def main():
         y_test_pred = clf.predict(x_test)
 
         # measure inference times
-        mean_time, std_time = measure_inference_time(clf)
+        mean_time, std_time = utils.metric.measure_inference_time_sktime(clf)
 
         # log results
         acc_val = accuracy_score(y_val, y_val_pred)
