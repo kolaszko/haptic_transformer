@@ -16,6 +16,7 @@ def main():
 
     # feed for classifiers (pd.Series)
     x_train, y_train = utils.sktime.to_nested_3d(train_ds, config["dataset_type"])
+    data_shape = train_ds.signal_length, train_ds.mean.shape[-1]
     x_val, y_val = utils.sktime.to_nested_3d(val_ds, config["dataset_type"])
     x_test, y_test = utils.sktime.to_nested_3d(test_ds, config["dataset_type"])
 
@@ -38,9 +39,6 @@ def main():
         y_val_pred = clf.predict(x_val)
         y_test_pred = clf.predict(x_test)
 
-        # measure inference times
-        mean_time, std_time = utils.sktime.measure_inference_time(clf)
-
         # log results
         acc_val = accuracy_score(y_val, y_val_pred)
         conf_mat_val = confusion_matrix(y_val, y_val_pred, normalize='true')
@@ -53,6 +51,9 @@ def main():
         print("Test accuracy: {}".format(acc_test))
         print("Test confusion matrix:\n{}\n".format(conf_mat_test))
         print("Classification report:\n{}\n".format(test_cls_report))
+
+        # measure inference times
+        mean_time, std_time = utils.sktime.measure_inference_time(clf, shape=data_shape)
         print("Inference time:\n{} +/- {}\n".format(mean_time, std_time))
         print("********************************")
 
