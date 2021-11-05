@@ -16,9 +16,9 @@ def main():
 
     # feed for classifiers (pd.Series)
     x_train, y_train = utils.sktime.to_nested_3d(train_ds, config["dataset_type"])
-    data_shape = train_ds.signal_length, train_ds.mean.shape[-1]
     x_val, y_val = utils.sktime.to_nested_3d(val_ds, config["dataset_type"])
     x_test, y_test = utils.sktime.to_nested_3d(test_ds, config["dataset_type"])
+    data_shape = train_ds.signal_length, train_ds.mean.shape[-1]
 
     # chosen classifiers
     classifiers = (

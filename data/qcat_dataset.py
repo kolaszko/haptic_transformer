@@ -49,7 +49,8 @@ class QCATDataset(Dataset):
 
         self.signals = {
             "ft": np.concatenate([forces, imu], -1),
-            "label": force_labels
+            "label_one_hot": force_labels,
+            "label": np.argmax(force_labels, -1)
         }
 
         self.mean, self.std = np.mean(self.signals["ft"], (0, 1), keepdims=True), \
