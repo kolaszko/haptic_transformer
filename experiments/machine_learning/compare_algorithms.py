@@ -4,7 +4,7 @@ from sktime.classification.all import (KNeighborsTimeSeriesClassifier, ROCKETCla
 
 import utils
 
-CONFIG_FILE = "config_put.yaml"
+CONFIG_FILE = "config_qcat.yaml"
 
 
 def main():
@@ -39,7 +39,7 @@ def main():
         y_test_pred = clf.predict(x_test)
 
         # measure inference times
-        mean_time, std_time = utils.sktime.measure_inference_time_sktime(clf)
+        mean_time, std_time = utils.sktime.measure_inference_time(clf)
 
         # log results
         acc_val = accuracy_score(y_val, y_val_pred)

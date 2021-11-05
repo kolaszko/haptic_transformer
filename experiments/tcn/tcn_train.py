@@ -10,10 +10,11 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
+from torchsummary import summary
 
+import utils
 from data import HapticDataset
 from models import TemporalConvNet
-from utils import save_statistics, summary
 
 
 def reset_weights(m):
@@ -207,8 +208,8 @@ def main(args):
             writer.add_scalar('loss/test', mean_loss / len(test_ds), epoch)
             writer.add_scalar('accuracy/test', acc, epoch)
 
-        save_statistics(y_true_val, y_pred_val, model, os.path.join(log_dir, 'val'), (160, 6))
-        save_statistics(y_true_test, y_pred_test, model, os.path.join(log_dir, 'test'), (160, 6))
+        utils.log.save_statistics(y_true_val, y_pred_val, model, os.path.join(log_dir, 'val'), (160, 6))
+        utils.log.save_statistics(y_true_test, y_pred_test, model, os.path.join(log_dir, 'test'), (160, 6))
 
         writer.flush()
 

@@ -15,9 +15,9 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchsummary import summary
 
+import utils
 from data import HapticDataset
 from models import HAPTR
-from utils import save_statistics
 
 
 def save_gif(img_list, folder, epoch, file_suffix="train", w=300, h=400):
@@ -75,7 +75,7 @@ def main(args):
 
     current_time = datetime.now().strftime('%b%d_%H-%M-%S')
     log_dir = os.path.join(
-        'haptr_runs', current_time + '_' + socket.gethostname())
+        '../../haptr_runs', current_time + '_' + socket.gethostname())
 
     model = HAPTR(params['num_classes'], params['projection_dim'],
                   params['sequence_length'], params['nheads'],
@@ -241,8 +241,8 @@ def main(args):
             writer.add_scalar('loss/test', mean_loss / len(test_ds), epoch)
             writer.add_scalar('accuracy/test', acc, epoch)
 
-        save_statistics(y_true_val, y_pred_val, model, os.path.join(log_dir, 'val'), (160, 6))
-        save_statistics(y_true_test, y_pred_test, model, os.path.join(log_dir, 'test'), (160, 6))
+        utils.log.save_statistics(y_true_val, y_pred_val, model, os.path.join(log_dir, 'val'), (160, 6))
+        utils.log.save_statistics(y_true_test, y_pred_test, model, os.path.join(log_dir, 'test'), (160, 6))
 
         writer.flush()
 
