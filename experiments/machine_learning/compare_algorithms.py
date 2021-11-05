@@ -1,32 +1,23 @@
-import numpy as np
 import yaml
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from sktime.classification.all import (KNeighborsTimeSeriesClassifier, ROCKETClassifier)
-from sktime.classification.compose import ColumnEnsembleClassifier
-from sktime.datatypes._panel._convert import from_3d_numpy_to_nested
 
 import utils
 
+CONFIG_FILE = "config_put.yaml"
+
 
 def main():
-    with open("./config.yaml") as file:
+    with open(CONFIG_FILE) as file:
         config = yaml.load(file, Loader=yaml.FullLoader)
 
     # load dataset
     train_ds, val_ds, test_ds = utils.dataset.load_dataset(config)
 
     # feed for classifiers (pd.Series)
-    x_train = np.asarray([(s['signal'] - train_ds.mean) / train_ds.std for s in train_ds.signals])
-    x_train = from_3d_numpy_to_nested(x_train.transpose((0, 2, 1)))
-    x_val = np.asarray([(s['signal'] - val_ds.mean) / val_ds.std for s in val_ds.signals])
-    x_val = from_3d_numpy_to_nested(x_val.transpose((0, 2, 1)))
-    x_test = np.asarray([(s['signal'] - test_ds.mean) / test_ds.std for s in test_ds.signals])
-    x_test = from_3d_numpy_to_nested(x_test.transpose((0, 2, 1)))
-
-    # labels
-    y_train = np.asarray([s['label'] for s in train_ds.signals])
-    y_val = np.asarray([s['label'] for s in val_ds.signals])
-    y_test = np.asarray([s['label'] for s in test_ds.signals])
+    x_train, y_train = utils.sktime.to_nested_3d(train_ds, config["dataset_type"])
+    x_val, y_val = utils.sktime.to_nested_3d(val_ds, config["dataset_type"])
+    x_test, y_test = utils.sktime.to_nested_3d(test_ds, config["dataset_type"])
 
     # chosen classifiers
     classifiers = (
@@ -35,19 +26,10 @@ def main():
     )
 
     # main loop
-    for classifier in classifiers:
-
-        # apply classifier for each column or apply classifier for the multivariate data
-        if classifier.capabilities["multivariate"]:
-            clf = classifier
-        else:
-            estimators = [("{}".format(k), classifier, [k]) for k in range(x_train.shape[-1])]
-            clf = ColumnEnsembleClassifier(
-                estimators=estimators
-            )
-
+    print("Run training.")
+    for clf in classifiers:
         print("********************************")
-        print("Running:\n{}\n".format(classifier))
+        print("Running:\n{}\n".format(clf))
 
         # train
         clf.fit(x_train, y_train)
@@ -57,7 +39,7 @@ def main():
         y_test_pred = clf.predict(x_test)
 
         # measure inference times
-        mean_time, std_time = utils.metric.measure_inference_time_sktime(clf)
+        mean_time, std_time = utils.sktime.measure_inference_time_sktime(clf)
 
         # log results
         acc_val = accuracy_score(y_val, y_val_pred)

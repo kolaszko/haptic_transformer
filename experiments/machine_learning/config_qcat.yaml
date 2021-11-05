@@ -1,0 +1,6 @@
+dataset_type: "qcat"
+dataset_folder: "/media/mbed/internal/backup/haptr/QCAT_legged_robot_terrain_classification_dataset"
+dataset_file: ""
+signal_length: 662
+signal_start: 0
+k_folds: 5
