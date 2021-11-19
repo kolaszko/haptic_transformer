@@ -11,6 +11,8 @@ class HapticDataset(Dataset):
             self.signals = pickled[key]
 
         self.num_classes = 8
+        self.num_modalities = 2
+        self.dim_modalities = [3, 3]
         self.mean, self.std = pickled['signal_stats']
         self.weights = pickled['classes_weights']
         self.signal_start = signal_start
@@ -25,8 +27,12 @@ class HapticDataset(Dataset):
     def __len__(self):
         return len(self.signals)
 
-    def __getitem__(self, index):
-        sig = self.signals[index]['signal'][self.signal_start: self.signal_start + self.signal_length]
-        label = self.signals[index]['label']
+    def __getitem__(self, index, split_modalities=True):
+        if split_modalities:
+            sig = self.signals[index]['signal'][self.signal_start: self.signal_start + self.signal_length, :3], \
+                  self.signals[index]['signal'][self.signal_start: self.signal_start + self.signal_length, 3:]
+        else:
+            sig = [self.signals[index]['signal'][self.signal_start: self.signal_start + self.signal_length]]
 
+        label = self.signals[index]['label']
         return sig, label
