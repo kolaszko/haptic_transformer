@@ -17,17 +17,6 @@ import utils
 from models import HAPTR_ModAtt
 
 
-def load_samples_to_device(data, device):
-    if len(data[0]) > 1:
-        tensor_list = [s.to(device).float() for s in data[0]]
-        s = torch.stack(tensor_list, -1)
-    else:
-        s = data[0][0].float()
-        s.unsqueeze(1)
-    labels = data[-1].to(device)
-    return s, labels
-
-
 def main(args):
     print(args)
 
@@ -91,7 +80,7 @@ def main(args):
 
             model.train(True)
             for step, data in enumerate(train_dataloader):
-                s, labels = load_samples_to_device(data, device)
+                s, labels = utils.dataset.load_samples_to_device(data, device)
 
                 optimizer.zero_grad()
 
@@ -123,7 +112,7 @@ def main(args):
             model.train(False)
             with torch.no_grad():
                 for step, data in enumerate(val_dataloader):
-                    s, labels = load_samples_to_device(data, device)
+                    s, labels = utils.dataset.load_samples_to_device(data, device)
 
                     out = model(s)
                     loss = criterion(out, labels)
@@ -165,7 +154,7 @@ def main(args):
             model.train(False)
             with torch.no_grad():
                 for step, data in enumerate(test_dataloader):
-                    s, labels = load_samples_to_device(data, device)
+                    s, labels = utils.dataset.load_samples_to_device(data, device)
 
                     out = model(s)
                     loss = criterion(out, labels)

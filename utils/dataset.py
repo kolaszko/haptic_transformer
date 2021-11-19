@@ -1,6 +1,19 @@
 import os
 
+import torch
+
 from data import HapticDataset, QCATDataset
+
+
+def load_samples_to_device(data, device):
+    if len(data[0]) > 1:
+        tensor_list = [s.to(device).float() for s in data[0]]
+        s = torch.stack(tensor_list, -1)
+    else:
+        s = data[0][0].float()
+        s.unsqueeze(1)
+    labels = data[-1].to(device)
+    return s, labels
 
 
 def load_dataset(config):
