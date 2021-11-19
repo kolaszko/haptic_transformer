@@ -1,1 +1,1 @@
-from . import dataset, sktime, log
+from . import dataset, sktime, log, model

@@ -17,13 +17,6 @@ from data import HapticDataset
 from models import TemporalConvNet
 
 
-def reset_weights(m):
-    for layer in m.children():
-        if hasattr(layer, 'reset_parameters'):
-            print(f'Reset trainable parameters of layer = {layer}')
-            layer.reset_parameters()
-
-
 def main(args):
     params = {
         'num_classes': args.num_classes,

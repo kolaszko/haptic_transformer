@@ -18,13 +18,6 @@ import utils
 from models import HAPTR
 
 
-def reset_weights(m):
-    for layer in m.children():
-        if hasattr(layer, 'reset_parameters'):
-            print(f'Reset trainable parameters of layer = {layer}')
-            layer.reset_parameters()
-
-
 def main(args):
     print(args)
 
@@ -249,7 +242,8 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset-config-file', type=str, default="/home/mbed/Projects/haptic_transformer/experiments/config/config_put.yaml")
+    parser.add_argument('--dataset-config-file', type=str,
+                        default="/home/mbed/Projects/haptic_transformer/experiments/config/config_put.yaml")
     parser.add_argument('--epochs', type=int, default=1000)
     parser.add_argument('--batch-size', type=int, default=128)
     parser.add_argument('--num-classes', type=int, default=8)
