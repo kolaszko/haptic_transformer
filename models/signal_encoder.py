@@ -41,12 +41,12 @@ class SignalEncoderConv(nn.Module):
 
 
 class SignalEncoderLinear(nn.Module):
-    def __init__(self, num_patches, projection_dim, position=True, modalities=6, learnable=False):
+    def __init__(self, num_patches, projection_dim, position=True, num_channels=6, learnable=False):
         super().__init__()
 
         self.num_patches = num_patches
         self.projection = nn.Sequential(
-            nn.Linear(modalities, projection_dim),
+            nn.Linear(num_channels, projection_dim),
             nn.LayerNorm(projection_dim)
         )
         if position:

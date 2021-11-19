@@ -9,8 +9,7 @@ class HAPTR(nn.Module):
     def __init__(self, num_classes, projection_dim, sequence_length, nheads, num_encoder_layers, feed_forward,
                  dropout, dim_modalities, num_modalities):
         super().__init__()
-        self.signal_encoder = SignalEncoderLinear(sequence_length, projection_dim, modalities=num_modalities,
-                                                  learnable=False)
+        self.signal_encoder = SignalEncoderLinear(sequence_length, projection_dim, learnable=False)
         # self.signal_encoder = SignalEncoderConv(hidden_dim, projection_dim, learnable=False)
 
         encoder_layer = nn.TransformerEncoderLayer(d_model=projection_dim, nhead=nheads, dropout=dropout,
@@ -30,11 +29,9 @@ class HAPTR(nn.Module):
         x = self.signal_encoder(inputs)
         x = x.squeeze(1).permute(1, 0, 2)
         x = self.transformer(x)
-
         x = x.permute(1, 0, 2)
         x = torch.mean(x, -1)
         x = self.mlp_head(x)
-
         return x
 
 
@@ -48,8 +45,11 @@ class HAPTR_ModAtt(HAPTR):
         self.mod_attn = ModalityAttention(num_modalities, dim_modalities, sequence_length, dropout)
 
     def forward(self, inputs):
-        x, w = self.mod_attn(inputs)
+        _, w = self.mod_attn(inputs)
+        x = inputs * w.unsqueeze(2)
+        x = x.view(*x.shape[:-2], -1)
         x = self.signal_encoder(x)
+        x = x.squeeze(1).permute(1, 0, 2)
         x = self.transformer(x)
         x = x.permute(1, 0, 2)
         x = torch.mean(x, -1)
@@ -70,16 +70,6 @@ class ModalityAttention(nn.Module):
         self.self_attn = nn.MultiheadAttention(embed_dim=self.num_modalities, num_heads=1, dropout=self.dropout,
                                                kdim=self.seq_length, vdim=self.seq_length)
         self.flat_nn = nn.ModuleList([FlattenModality(dim, dropout) for dim in self.dim_modalities])
-
-        self.key = nn.Sequential(  # 2 x B x 160
-            nn.Dropout(dropout),
-            nn.Linear(self.num_modalities, self.seq_length)
-        )
-
-        self.value = nn.Sequential(  # 2 x B x 160
-            nn.Dropout(dropout),
-            nn.Linear(self.num_modalities, self.seq_length)
-        )
 
     def forward(self, inputs):
         mods = torch.stack([self.flat_nn[i](inputs[..., i]) for i in range(self.num_modalities)])
