@@ -10,6 +10,7 @@ class HapticDataset(Dataset):
             pickled = pickle.load(f)
             self.signals = pickled[key]
 
+        self.num_classes = 8
         self.mean, self.std = pickled['signal_stats']
         self.weights = pickled['classes_weights']
         self.signal_start = signal_start

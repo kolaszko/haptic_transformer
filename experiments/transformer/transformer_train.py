@@ -1,37 +1,21 @@
 import argparse
-import json
 import os
 import socket
+import sys
 import time
 from copy import copy
 from datetime import datetime
 
-import imageio
 import numpy as np
 import torch
 import torch.nn as nn
-from skimage.transform import resize
+import yaml
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchsummary import summary
 
 import utils
-from data import HapticDataset
 from models import HAPTR
-
-
-def save_gif(img_list, folder, epoch, file_suffix="train", w=300, h=400):
-    if len(img_list) > 1:
-        path = os.path.join(folder, f"epoch_{file_suffix}_{epoch:05d}.gif")
-        with imageio.get_writer(path, mode='I') as writer:
-            for img in img_list:
-                img = resize(img, (w, h))
-                img = (img - img.min()) / (img.max() - img.min())
-                img = np.multiply(img, 256).astype(np.uint8)
-                writer.append_data(img)
-        print(f"Saved GIF at {path}.")
-    else:
-        print("Empty img list.")
 
 
 def reset_weights(m):
@@ -42,50 +26,35 @@ def reset_weights(m):
 
 
 def main(args):
-    params = {
-        'num_classes': args.num_classes,
-        'projection_dim': args.projection_dim,
-        'sequence_length': args.sequence_length,
-        'nheads': args.nheads,
-        'num_encoder_layers': args.num_encoder_layers,
-        'feed_forward': args.feed_forward,
-        'dropout': args.dropout,
-        'lr': args.lr,
-        'gamma': args.gamma,
-        'weight_decay': args.weight_decay,
-        'batch_size': args.batch_size
-    }
-
-    print(params)
+    print(args)
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    torch.manual_seed(42)
     print(device)
 
-    train_ds = HapticDataset(args.dataset_path, 'train_ds', signal_start=0, signal_length=params['sequence_length'])
-    val_ds = HapticDataset(args.dataset_path, 'val_ds', signal_start=0, signal_length=params['sequence_length'])
-    test_ds = HapticDataset(args.dataset_path, 'test_ds', signal_start=0, signal_length=params['sequence_length'])
+    # load data
+    with open(args.dataset_config_file) as file:
+        config = yaml.load(file, Loader=yaml.FullLoader)
 
-    train_dataloader = DataLoader(train_ds, batch_size=params['batch_size'], shuffle=True)
-    val_dataloader = DataLoader(val_ds, batch_size=params['batch_size'], shuffle=True)
-    test_dataloader = DataLoader(test_ds, batch_size=params['batch_size'], shuffle=True)
+    # load dataset
+    train_ds, val_ds, test_ds = utils.dataset.load_dataset(config)
+    data_shape = train_ds.signal_length, train_ds.mean.shape[-1]
 
+    train_dataloader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True)
+    val_dataloader = DataLoader(val_ds, batch_size=args.batch_size, shuffle=True)
+    test_dataloader = DataLoader(test_ds, batch_size=args.batch_size, shuffle=True)
     results = {}
 
-    torch.manual_seed(42)
-
     current_time = datetime.now().strftime('%b%d_%H-%M-%S')
-    log_dir = os.path.join(
-        '../../haptr_runs', current_time + '_' + socket.gethostname())
+    log_dir = os.path.join('../../haptr_runs', current_time + '_' + socket.gethostname())
 
-    model = HAPTR(params['num_classes'], params['projection_dim'],
-                  params['sequence_length'], params['nheads'],
-                  params['num_encoder_layers'], params['feed_forward'],
-                  params['dropout'])
+    model = HAPTR(train_ds.num_classes, args.projection_dim, args.sequence_length, args.nheads, args.num_encoder_layers,
+                  args.feed_forward, args.dropout)
 
     model.to(device)
-    summary(model, input_size=(160, 6))
+    summary(model, input_size=data_shape)
 
-    optimizer = torch.optim.AdamW(model.parameters(), lr=params['lr'], weight_decay=params['weight_decay'])
+    optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs, eta_min=5e-6)
 
     weight = torch.Tensor(train_ds.weights)
@@ -100,8 +69,8 @@ def main(args):
         print(writer.log_dir)
         print('========    ========')
 
-        with open(os.path.join(log_dir, 'params.json'), 'w') as f:
-            f.write(json.dumps(params))
+        with open(os.path.join(log_dir, 'args.txt'), 'w') as f:
+            f.write('\n'.join(sys.argv[1:]))
 
         y_pred_val = []
         y_true_val = []
@@ -141,7 +110,7 @@ def main(args):
                     train_epoch_gif.append(attn)
 
             if args.gif_save:
-                save_gif(train_epoch_gif, args.gif_path, epoch)
+                utils.log.save_gif(train_epoch_gif, args.gif_path, epoch)
 
             writer.add_scalar('loss/train', mean_loss / len(train_ds), epoch)
             writer.add_scalar('accuracy/train', (100 * correct / len(train_ds)), epoch)
@@ -222,7 +191,7 @@ def main(args):
                         val_epoch_gif.append(attn)
 
                 if args.gif_save:
-                    save_gif(val_epoch_gif, args.gif_path, epoch, file_suffix="val")
+                    utils.log.save_gif(val_epoch_gif, args.gif_path, epoch, file_suffix="val")
 
             acc = (100 * correct / len(test_ds))
             if acc > best_acc_test:
@@ -241,18 +210,19 @@ def main(args):
             writer.add_scalar('loss/test', mean_loss / len(test_ds), epoch)
             writer.add_scalar('accuracy/test', acc, epoch)
 
-        utils.log.save_statistics(y_true_val, y_pred_val, model, os.path.join(log_dir, 'val'), (160, 6))
-        utils.log.save_statistics(y_true_test, y_pred_test, model, os.path.join(log_dir, 'test'), (160, 6))
+        utils.log.save_statistics(y_true_val, y_pred_val, model, os.path.join(log_dir, 'val'), data_shape)
+        utils.log.save_statistics(y_true_test, y_pred_test, model, os.path.join(log_dir, 'test'), data_shape)
 
         writer.flush()
 
-    with open(os.path.join(log_dir, 'results.json'), 'w') as f:
-        f.write(json.dumps(results))
+    with open(os.path.join(log_dir, 'results.txt'), 'w') as f:
+        f.write(results)
 
     results_timer = {}
-    dummy_input = torch.randn(1, 160, 6, dtype=torch.float).to(device)
+    dummy_input = torch.randn(1, *data_shape, dtype=torch.float).to(device)
     repetitions = 300
     timings = np.zeros((repetitions, 1))
+
     # GPU-WARM-UP
     for _ in range(10):
         _ = model(dummy_input)
@@ -273,13 +243,13 @@ def main(args):
     results_timer['std'] = std_syn
     results_timer['unit'] = 'ms'
 
-    with open(os.path.join(log_dir, 'inference_time.json'), 'w') as f:
-        f.write(json.dumps(results_timer))
+    with open(os.path.join(log_dir, 'inference_time.txt'), 'w') as f:
+        f.write('\n'.join(results_timer))
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset-path', type=str, required=True)
+    parser.add_argument('--dataset-config-file', type=str, default="/home/mbed/Projects/haptic_transformer/experiments/config/config_put.yaml")
     parser.add_argument('--epochs', type=int, default=1000)
     parser.add_argument('--batch-size', type=int, default=128)
     parser.add_argument('--num-classes', type=int, default=8)
@@ -293,7 +263,7 @@ if __name__ == '__main__':
     parser.add_argument('--gamma', type=float, default=0.999)
     parser.add_argument('--weight-decay', type=float, default=1e-3)
     parser.add_argument('--gif-interval', type=int, default=5)
-    parser.add_argument('--gif-save', action='store_true', default=True)
+    parser.add_argument('--gif-save', action='store_true', default=False)
     parser.add_argument('--gif-path', type=str, default="/media/mbed/internal/backup/haptr")
 
     args, _ = parser.parse_known_args()

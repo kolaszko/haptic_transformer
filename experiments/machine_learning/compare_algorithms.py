@@ -1,17 +1,17 @@
+import argparse
+
 import yaml
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from sktime.classification.all import (KNeighborsTimeSeriesClassifier, ROCKETClassifier)
 
 import utils
 
-CONFIG_FILE = "config_qcat.yaml"
 
-
-def main():
-    with open(CONFIG_FILE) as file:
+def main(args):
+    with open(args.dataset_config_file) as file:
         config = yaml.load(file, Loader=yaml.FullLoader)
 
-    # load dataset
+    # load the dataset
     train_ds, val_ds, test_ds = utils.dataset.load_dataset(config)
 
     # feed for classifiers (pd.Series)
@@ -59,4 +59,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dataset-config-file', type=str,
+                        default="/home/mbed/Projects/haptic_transformer/experiments/config/config_put.yaml")
+    args, _ = parser.parse_known_args()
+    main(args)

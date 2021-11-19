@@ -1,9 +1,26 @@
 import json
 import os
 
+import imageio
 import numpy as np
 import torch
+from skimage.transform import resize
 from sklearn.metrics import accuracy_score, confusion_matrix, jaccard_score
+from torchsummary import summary
+
+
+def save_gif(img_list, folder, epoch, file_suffix="train", w=300, h=400):
+    if len(img_list) > 1:
+        path = os.path.join(folder, f"epoch_{file_suffix}_{epoch:05d}.gif")
+        with imageio.get_writer(path, mode='I') as writer:
+            for img in img_list:
+                img = resize(img, (w, h))
+                img = (img - img.min()) / (img.max() - img.min())
+                img = np.multiply(img, 256).astype(np.uint8)
+                writer.append_data(img)
+        print(f"Saved GIF at {path}.")
+    else:
+        print("Empty img list.")
 
 
 def save_statistics(y_true, y_pred, model, path, input_size):

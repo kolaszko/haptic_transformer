@@ -18,7 +18,7 @@ from torch.utils.data import Dataset
 
 class QCATDataset(Dataset):
     def __init__(self, folder_path, key, signal_start=90, signal_length=90, standarize=True):
-        num_classes = 6  # we have 6 terrain classes
+        self.num_classes = 6  # we have 6 terrain classes
         num_steps = 8  # the robot walked 8 steps on each terrain
         max_steps = 662  # this is obtained based on our data
         all_force_colms = 16  # this is based on number of all colms in the csv files
@@ -42,9 +42,10 @@ class QCATDataset(Dataset):
             min_num_trial = 0
             max_num_trial = 10
 
-        forces, force_labels = read_data(folder_path, num_classes, min_num_trial, max_num_trial, num_steps, max_steps,
-                                         all_force_colms, relevant_force_colms, min_num_speed, max_num_speed, "raw")
-        imu, imu_labels = read_data(folder_path, num_classes, min_num_trial, max_num_trial, num_steps, max_steps,
+        forces, force_labels = read_data(folder_path, self.num_classes, min_num_trial, max_num_trial, num_steps,
+                                         max_steps, all_force_colms, relevant_force_colms, min_num_speed, max_num_speed,
+                                         "raw")
+        imu, imu_labels = read_data(folder_path, self.num_classes, min_num_trial, max_num_trial, num_steps, max_steps,
                                     all_imu_colms, relevant_imu_colms, min_num_speed, max_num_speed, "imu")
 
         self.signals = {
