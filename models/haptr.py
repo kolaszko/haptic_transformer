@@ -18,7 +18,9 @@ class HAPTR(nn.Module):
         self.transformer = nn.TransformerEncoder(encoder_layer, num_encoder_layers, encoder_norm)
 
         self.mlp_head = nn.Sequential(
-            nn.Dropout(0.2),
+            nn.Linear(num_modalities + projection_dim, 1, 1),
+            nn.Flatten(),
+            nn.Dropout(dropout),
             nn.Linear(sequence_length, num_classes)
         )
 
@@ -46,13 +48,12 @@ class HAPTR_ModAtt(HAPTR):
 
     def forward(self, inputs):
         _, w = self.mod_attn(inputs)
-        x = inputs * w.unsqueeze(2)
-        x = x.view(*x.shape[:-2], -1)
+        x = inputs.view(*inputs.shape[:-2], -1)
         x = self.signal_encoder(x)
         x = x.squeeze(1).permute(1, 0, 2)
         x = self.transformer(x)
         x = x.permute(1, 0, 2)
-        x = torch.mean(x, -1)
+        x = torch.concat([x, w], -1)
         x = self.mlp_head(x)
 
         return x
