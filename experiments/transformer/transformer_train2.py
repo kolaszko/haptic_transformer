@@ -1,7 +1,6 @@
 import argparse
 import os
 import socket
-import sys
 import time
 from datetime import datetime
 
@@ -45,7 +44,7 @@ def main(args):
     summary(model, input_size=data_shape)
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs, eta_min=5e-6)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs, eta_min=1e-4)
 
     weight = torch.Tensor(train_ds.weights)
     w = weight.to(device)
@@ -63,7 +62,7 @@ def main(args):
         print('========    ========')
 
         with open(os.path.join(log_dir, 'args.txt'), 'w') as f:
-            f.write('\n'.join(sys.argv[1:]))
+            print(args.__dict__, file=f)
 
         y_pred_val = []
         y_true_val = []
@@ -221,7 +220,7 @@ def main(args):
     results_timer['unit'] = 'ms'
 
     with open(os.path.join(log_dir, 'inference_time.txt'), 'w') as f:
-        f.write('\n'.join(results_timer))
+        print(results_timer, file=f)
 
 
 if __name__ == '__main__':
@@ -234,10 +233,10 @@ if __name__ == '__main__':
     parser.add_argument('--projection-dim', type=int, default=16)
     parser.add_argument('--sequence-length', type=int, default=160)
     parser.add_argument('--nheads', type=int, default=8)
-    parser.add_argument('--num-encoder-layers', type=int, default=4)
+    parser.add_argument('--num-encoder-layers', type=int, default=8)
     parser.add_argument('--feed-forward', type=int, default=128)
     parser.add_argument('--dropout', type=float, default=.1)
-    parser.add_argument('--lr', type=float, default=5e-4)
+    parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--gamma', type=float, default=0.999)
     parser.add_argument('--weight-decay', type=float, default=1e-3)
     parser.add_argument('--gif-interval', type=int, default=5)
