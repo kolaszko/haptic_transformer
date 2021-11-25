@@ -9,23 +9,22 @@ class HAPTR(nn.Module):
     def __init__(self, num_classes, projection_dim, sequence_length, nheads, num_encoder_layers, feed_forward,
                  dropout, dim_modalities, num_modalities):
         super().__init__()
-        self.signal_encoder = SignalEncoderLinear(sequence_length, projection_dim, learnable=False)
-        # self.signal_encoder = SignalEncoderConv(hidden_dim, projection_dim, learnable=False)
+        self.sequence_length = sequence_length
+        self.dim_modalities = dim_modalities
+        self.num_modalities = num_modalities
 
-        encoder_layer = nn.TransformerEncoderLayer(d_model=projection_dim, nhead=nheads, dropout=dropout,
-                                                   dim_feedforward=feed_forward, activation='gelu')
-        encoder_norm = nn.LayerNorm(projection_dim)
-        self.transformer = nn.TransformerEncoder(encoder_layer, num_encoder_layers, encoder_norm)
+        self.signal_encoder = SignalEncoderLinear(sequence_length, projection_dim, learnable=False)
+        encoder_layer = nn.TransformerEncoderLayer(d_model=projection_dim,
+                                                   nhead=nheads,
+                                                   dropout=dropout,
+                                                   dim_feedforward=feed_forward,
+                                                   activation='gelu')
+        self.transformer = nn.TransformerEncoder(encoder_layer, num_encoder_layers, norm=nn.LayerNorm(projection_dim))
 
         self.mlp_head = nn.Sequential(
-            nn.Linear(num_modalities + projection_dim, 1, 1),
-            nn.Flatten(),
             nn.Dropout(dropout),
             nn.Linear(sequence_length, num_classes)
         )
-
-        self.dim_modalities = dim_modalities
-        self.num_modalities = num_modalities
 
     def forward(self, inputs):
         x = self.signal_encoder(inputs)
@@ -36,6 +35,12 @@ class HAPTR(nn.Module):
         x = self.mlp_head(x)
         return x
 
+    def warmup(self, device, num_reps=1, num_batch=1):
+        for _ in range(num_reps):
+            dummy_input = torch.randn((num_batch, self.sequence_length, sum(self.dim_modalities)),
+                                      dtype=torch.float).to(device)
+            self.forward(dummy_input)
+
 
 class HAPTR_ModAtt(HAPTR):
 
@@ -45,6 +50,13 @@ class HAPTR_ModAtt(HAPTR):
                          dropout, dim_modalities, num_modalities)
 
         self.mod_attn = ModalityAttention(num_modalities, dim_modalities, sequence_length, dropout)
+
+        self.mlp_head = nn.Sequential(
+            nn.Linear(num_modalities + projection_dim, 1, 1),
+            nn.Flatten(),
+            nn.Dropout(dropout),
+            nn.Linear(sequence_length, num_classes)
+        )
 
     def forward(self, inputs):
         _, w = self.mod_attn(inputs)
@@ -57,6 +69,18 @@ class HAPTR_ModAtt(HAPTR):
         x = self.mlp_head(x)
 
         return x
+
+    def warmup(self, device, num_reps=1, num_batch=1):
+        for _ in range(num_reps):
+
+            dummy_input = list()
+            for mod_dim in self.dim_modalities:
+                shape = [num_batch, self.sequence_length, mod_dim, 1]
+                mod_input = torch.randn(shape, dtype=torch.float).to(device)
+                dummy_input.append(mod_input)
+
+            dummy_input = torch.concat(dummy_input, -1)
+            self.forward(dummy_input)
 
 
 class ModalityAttention(nn.Module):
