@@ -53,7 +53,10 @@ def main(args):
         with torch.no_grad():
             for step, data in enumerate(test_dataloader):
                 batch_data, batch_labels = utils.dataset.load_samples_to_device(data, device)
-                out, loss = query(batch_data, batch_labels, model, criterion)
+
+                out, mod_weights = model(batch_data)
+                loss = criterion(out, batch_labels)
+
                 mean_loss += loss.item()
                 correct += batch_hits(out, batch_labels)
 
@@ -100,7 +103,7 @@ if __name__ == '__main__':
     parser.add_argument('--dataset-config-file', type=str,
                         default="/home/mbed/Projects/haptic_transformer/experiments/config/config_put.yaml")
     parser.add_argument('--model-path', type=str,
-                        default="/home/mbed/Projects/haptic_transformer/haptr_runs/Nov25_17-13-32_mbed/test_model")
+                        default="/home/mbed/Projects/haptic_transformer/experiments/transformer/haptr_runs/Nov25_18-30-09_mbed/test_model")
     parser.add_argument('--batch-size', type=int, default=1)
     parser.add_argument('--num-classes', type=int, default=8)
     parser.add_argument('--repetitions', type=int, default=300)

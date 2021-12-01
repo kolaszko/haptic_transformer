@@ -27,7 +27,7 @@ def train(x, y_true, model, criterion, optimizer):
 
 
 def query(x, y_true, model, criterion):
-    y_hat = model(x)
+    y_hat, w = model(x)
     loss = criterion(y_hat, y_true)
     return y_hat, loss
 

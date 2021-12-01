@@ -33,7 +33,7 @@ class HAPTR(nn.Module):
         x = x.permute(1, 0, 2)
         x = torch.mean(x, -1)
         x = self.mlp_head(x)
-        return x
+        return x, {}  # no weights
 
     def warmup(self, device, num_reps=1, num_batch=1):
         for _ in range(num_reps):
@@ -68,7 +68,7 @@ class HAPTR_ModAtt(HAPTR):
         x = torch.concat([x, w], -1)
         x = self.mlp_head(x)
 
-        return x
+        return x, {"mod_weights": w}
 
     def warmup(self, device, num_reps=1, num_batch=1):
         for _ in range(num_reps):
