@@ -3,23 +3,39 @@ import os
 
 import imageio
 import numpy as np
-from skimage.transform import resize
 from sklearn.metrics import accuracy_score, confusion_matrix, jaccard_score
 from torchsummary import summary
 
 
-def save_gif(img_list, folder, epoch, file_suffix="train", w=300, h=400):
-    if len(img_list) > 1:
-        path = os.path.join(folder, f"epoch_{file_suffix}_{epoch:05d}.gif")
-        with imageio.get_writer(path, mode='I') as writer:
-            for img in img_list:
-                img = resize(img, (w, h))
-                img = (img - img.min()) / (img.max() - img.min())
-                img = np.multiply(img, 256).astype(np.uint8)
-                writer.append_data(img)
-        print(f"Saved GIF at {path}.")
-    else:
-        print("Empty img list.")
+class GIF:
+    def __init__(self, folder, filename="result.gif", w=400, h=300):
+        self._folder = folder
+        self._gif_path = os.path.join(folder, filename)
+        self._writer = imageio.get_writer(self._gif_path, mode='I')
+        self._w = w
+        self._h = h
+        self._filenames = []
+        self._next = 0
+
+    def add(self, img):
+        if len(img.shape) == 2:
+            filename = os.path.join(self._folder, f'{self._next}.png')
+            imageio.imwrite(filename, img)
+            self._filenames.append(filename)
+            self._next += 1
+
+    def save(self, remove_files=False):
+        for filename in self._filenames:
+            image = imageio.imread(filename)
+            self._writer.append_data(image)
+
+            if remove_files:
+                os.remove(filename)
+
+        if remove_files:
+            self._filenames.clear()
+
+        print(f'gif saved at {self._gif_path}')
 
 
 def save_json(data, filepath):
