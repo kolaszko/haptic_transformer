@@ -10,28 +10,20 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-
-from data import HapticDataset
-from models import HAPTR
-from utils import save_statistics
 from torchsummary import summary
 
-
-def reset_weights(m):
-    for layer in m.children():
-        if hasattr(layer, 'reset_parameters'):
-            print(f'Reset trainable parameters of layer = {layer}')
-            layer.reset_parameters()
+import utils
+from data import HapticDataset
+from models import TemporalConvNet
 
 
 def main(args):
     params = {
         'num_classes': args.num_classes,
-        'projection_dim': args.projection_dim,
         'sequence_length': args.sequence_length,
-        'nheads': args.nheads,
-        'num_encoder_layers': args.num_encoder_layers,
         'feed_forward': args.feed_forward,
+        'levels': args.levels,
+        'nhid': args.nhid,
         'dropout': args.dropout,
         'lr': args.lr,
         'gamma': args.gamma,
@@ -58,14 +50,14 @@ def main(args):
 
     current_time = datetime.now().strftime('%b%d_%H-%M-%S')
     log_dir = os.path.join(
-        'haptr_runs', current_time + '_' + socket.gethostname())
+        'tcn_runs', current_time + '_' + socket.gethostname())
 
-    model = HAPTR(params['num_classes'], params['projection_dim'],
-                  params['sequence_length'], params['nheads'],
-                  params['num_encoder_layers'], params['feed_forward'],
-                  params['dropout'])
+    channel_sizes = [args.nhid] * args.levels
+    model = TemporalConvNet(6, channel_sizes, dropout=params['dropout'], ff=params['feed_forward'],
+                            num_classes=params['num_classes'])
 
     model.to(device)
+
     summary(model, input_size=(160, 6))
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=params['lr'], weight_decay=params['weight_decay'])
@@ -105,7 +97,7 @@ def main(args):
 
                 optimizer.zero_grad()
 
-                out = model(s.unsqueeze(1))
+                out = model(s.float())
                 loss = criterion(out, labels)
                 loss.backward()
 
@@ -136,7 +128,7 @@ def main(args):
                 for step, data in enumerate(val_dataloader):
                     s, labels = data[0].to(device), data[1].to(device)
 
-                    out = model(s.unsqueeze(1))
+                    out = model(s.float())
                     loss = criterion(out, labels)
 
                     _, predicted = torch.max(out.data, 1)
@@ -178,7 +170,7 @@ def main(args):
                 for step, data in enumerate(test_dataloader):
                     s, labels = data[0].to(device), data[1].to(device)
 
-                    out = model(s.unsqueeze(1))
+                    out = model(s.float())
                     loss = criterion(out, labels)
 
                     _, predicted = torch.max(out.data, 1)
@@ -209,8 +201,8 @@ def main(args):
             writer.add_scalar('loss/test', mean_loss / len(test_ds), epoch)
             writer.add_scalar('accuracy/test', acc, epoch)
 
-        save_statistics(y_true_val, y_pred_val, model, os.path.join(log_dir, 'val'), (160, 6))
-        save_statistics(y_true_test, y_pred_test, model, os.path.join(log_dir, 'test'), (160, 6))
+        utils.log.save_statistics(y_true_val, y_pred_val, model, os.path.join(log_dir, 'val'), (160, 6))
+        utils.log.save_statistics(y_true_test, y_pred_test, model, os.path.join(log_dir, 'test'), (160, 6))
 
         writer.flush()
 
@@ -228,7 +220,7 @@ def main(args):
     with torch.no_grad():
         for rep in range(repetitions):
             start_time = time.time()
-            out = model(dummy_input.unsqueeze(1))
+            out = model(dummy_input.float())
             _, predicted = torch.max(out.data, 1)
             end_time = time.time()
             timings[rep] = (end_time - start_time) * 1000
@@ -248,16 +240,15 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset-path', type=str, required=True)
-    parser.add_argument('--epochs', type=int, default=1000)
-    parser.add_argument('--batch-size', type=int, default=128)
+    parser.add_argument('--epochs', type=int, default=500)
+    parser.add_argument('--batch-size', type=int, default=256)
     parser.add_argument('--num-classes', type=int, default=8)
-    parser.add_argument('--projection-dim', type=int, default=16)
+    parser.add_argument('--levels', type=int, default=16)
     parser.add_argument('--sequence-length', type=int, default=160)
-    parser.add_argument('--nheads', type=int, default=8)
-    parser.add_argument('--num-encoder-layers', type=int, default=4)
-    parser.add_argument('--feed-forward', type=int, default=128)
-    parser.add_argument('--dropout', type=float, default=.1)
-    parser.add_argument('--lr', type=float, default=5e-4)
+    parser.add_argument('--nhid', type=int, default=25)
+    parser.add_argument('--feed-forward', type=int, default=256)
+    parser.add_argument('--dropout', type=float, default=.2)
+    parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--gamma', type=float, default=0.999)
     parser.add_argument('--weight-decay', type=float, default=1e-3)
 
