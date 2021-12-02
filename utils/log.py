@@ -26,7 +26,7 @@ class GIF:
             self._next += 1
 
     def save(self, remove_files=False):
-        for filename in range(self._filenames):
+        for filename in self._filenames:
             image = imageio.imread(filename)
             self._writer.append_data(image)
 

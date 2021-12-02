@@ -28,8 +28,7 @@ def main(args):
         config = yaml.load(file, Loader=yaml.FullLoader)
 
     # load dataset
-    split_modalities = True if args.model_type == "haptr_modatt" else False
-    _, _, test_ds = utils.dataset.load_dataset(config, split_modalities)
+    _, _, test_ds = utils.dataset.load_dataset(config)
     data_shape = test_ds.signal_length, test_ds.num_modalities, test_ds.mean.shape[-1]
     test_dataloader = DataLoader(test_ds, batch_size=args.batch_size, shuffle=True)
     results = {}
@@ -44,13 +43,14 @@ def main(args):
     criterion = nn.CrossEntropyLoss(weight=w)
 
     # start
-    gif = utils.log.GIF(os.path.join(log_dir, 'images'))
+    # gif = utils.log.GIF(os.path.join(log_dir, 'images'))
     with SummaryWriter(log_dir=log_dir) as writer:
         mean_loss, correct = 0.0, 0
         model.train(False)
 
         # run test loop
         y_pred, y_true = [], []
+        weights = []
         with torch.no_grad():
             for step, data in enumerate(test_dataloader):
                 batch_data, batch_labels = utils.dataset.load_samples_to_device(data, device)
@@ -68,11 +68,15 @@ def main(args):
                 print(f'Running loss test: {loss.item()} in step: {step}')
 
                 # add weights to the gif
-                img = utils.analysis.impose(misc["mod_weights"].cpu().numpy()[0], batch_data.cpu().numpy()[0])
-                gif.add(img)
+                # img = utils.analysis.impose(misc["mod_weights"].cpu().numpy()[0], batch_data.cpu().numpy()[0])
+                # gif.add
+
+                weights.append(misc["mod_weights"].cpu().numpy())
+
+
 
         # save resulting gif
-        gif.save()
+        # gif.save()
 
         # calculate epoch accuracy
         epoch_accuracy = accuracy(correct, len(test_ds))
@@ -81,6 +85,15 @@ def main(args):
         results['test'] = best_acc_test
         y_pred_test = y_pred
         y_true_test = y_true
+
+        w = weights.mean(0)
+        w1, w2 = w[:, 0], w[:, 1]
+        wmean1, wmean2 = w1.mean(), w2.mean()
+        wmedian1, wmedian2 = np.median(w1), np.median(w2)
+        writer.add_scalar('weights/mean/mod_0', wmean1, i)
+        writer.add_scalar('weights/mean/mod_1', wmean2, i)
+        writer.add_scalar('weights/median/mod_0', wmedian1, i)
+        writer.add_scalar('weights/median/mod_1', wmedian2, i)
 
         print('========== ACC ==========')
         print(best_acc_test)
@@ -111,7 +124,7 @@ if __name__ == '__main__':
     parser.add_argument('--dataset-config-file', type=str,
                         default="/home/mbed/Projects/haptic_transformer/experiments/config/config_put.yaml")
     parser.add_argument('--model-path', type=str,
-                        default="/home/mbed/Projects/haptic_transformer/experiments/transformer/haptr_runs/Nov25_18-30-09_mbed/test_model")
+                        default="/home/mbed/Projects/haptic_transformer/experiments/transformer/haptr_runs/Dec02_14-24-18_mbed/test_model")
     parser.add_argument('--batch-size', type=int, default=1)
     parser.add_argument('--num-classes', type=int, default=8)
     parser.add_argument('--repetitions', type=int, default=300)

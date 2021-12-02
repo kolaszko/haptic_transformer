@@ -55,8 +55,7 @@ def main(args):
         config = yaml.load(file, Loader=yaml.FullLoader)
 
     # load dataset
-    split_modalities = True if args.model_type == "haptr_modatt" else False
-    train_ds, val_ds, test_ds = utils.dataset.load_dataset(config, split_modalities)
+    train_ds, val_ds, test_ds = utils.dataset.load_dataset(config)
     data_shape = train_ds.signal_length, train_ds.num_modalities, train_ds.mean.shape[-1]
     train_dataloader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True)
     val_dataloader = DataLoader(val_ds, batch_size=args.batch_size, shuffle=True)
@@ -64,7 +63,7 @@ def main(args):
     results = {}
 
     # setup a model
-    if split_modalities:
+    if args.model_type == 'haptr_modatt':
         model = HAPTR_ModAtt(train_ds.num_classes,
                              args.projection_dim, args.sequence_length, args.nheads, args.num_encoder_layers,
                              args.feed_forward, args.dropout, train_ds.dim_modalities, train_ds.num_modalities)
