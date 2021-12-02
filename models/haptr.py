@@ -13,7 +13,8 @@ class HAPTR(nn.Module):
         self.dim_modalities = dim_modalities
         self.num_modalities = num_modalities
 
-        self.signal_encoder = SignalEncoderLinear(sequence_length, projection_dim, learnable=False)
+        self.signal_encoder = SignalEncoderLinear(sequence_length, projection_dim, num_channels=sum(dim_modalities),
+                                                  learnable=False)
         encoder_layer = nn.TransformerEncoderLayer(d_model=projection_dim,
                                                    nhead=nheads,
                                                    dropout=dropout,
@@ -59,13 +60,13 @@ class HAPTR_ModAtt(HAPTR):
         )
 
     def forward(self, inputs):
-        _, w = self.mod_attn(inputs)
+        xw, w = self.mod_attn(inputs)
         x = inputs.view(*inputs.shape[:-2], -1)
         x = self.signal_encoder(x)
         x = x.squeeze(1).permute(1, 0, 2)
         x = self.transformer(x)
+        x = torch.concat([x, xw], -1)
         x = x.permute(1, 0, 2)
-        x = torch.concat([x, w], -1)
         x = self.mlp_head(x)
 
         return x, {"mod_weights": w}
