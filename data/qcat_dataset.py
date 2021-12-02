@@ -15,16 +15,15 @@ import csv
 import numpy as np
 from torch.utils.data import Dataset
 
+import data.helpers as helpers
+
 
 class QCATDataset(Dataset):
     def __init__(self, folder_path, key, pick_modalities, split_modalities=False, signal_start=90, signal_length=90,
                  standarize=True):
         self.num_classes = 6  # we have 6 terrain classes
         self.pick_modalities = pick_modalities
-        self.dim_modalities = [3, 4]
-        if len(self.pick_modalities) < len(self.dim_modalities):
-            self.dim_modalities = [self.dim_modalities[i] for i in range(len(self.pick_modalities))]
-
+        self.dim_modalities = helpers.determine_dim_size([3, 4], pick_modalities)
         self.num_modalities = len(self.pick_modalities)
         self.split_modalities = split_modalities
         num_steps = 8  # the robot walked 8 steps on each terrain
@@ -77,14 +76,8 @@ class QCATDataset(Dataset):
         return len(self.signals)
 
     def __getitem__(self, index):
-        if self.split_modalities:
-            sig = list()
-            for mod_idx, mod_dim in zip(self.pick_modalities, self.dim_modalities):
-                sig.append(self.signals[index]['ft'][self.signal_start: self.signal_start + self.signal_length,
-                           mod_idx:mod_idx + mod_dim])
-        else:
-            sig = [self.signals[index]['ft'][self.signal_start: self.signal_start + self.signal_length]]
-
+        ts = self.signals[index]['ft'][self.signal_start: self.signal_start + self.signal_length]
+        sig = helpers.prepare_batch(ts, self.split_modalities, self.pick_modalities, self.dim_modalities)
         label = self.signals[index]['label']
         return sig, label
 
