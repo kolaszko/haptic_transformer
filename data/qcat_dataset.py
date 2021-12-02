@@ -17,10 +17,15 @@ from torch.utils.data import Dataset
 
 
 class QCATDataset(Dataset):
-    def __init__(self, folder_path, key, split_modalities=False, signal_start=90, signal_length=90, standarize=True):
+    def __init__(self, folder_path, key, pick_modalities, split_modalities=False, signal_start=90, signal_length=90,
+                 standarize=True):
         self.num_classes = 6  # we have 6 terrain classes
+        self.pick_modalities = pick_modalities
         self.dim_modalities = [3, 4]
-        self.num_modalities = 2
+        if len(self.pick_modalities) < len(self.dim_modalities):
+            self.dim_modalities = [self.dim_modalities[i] for i in range(len(self.pick_modalities))]
+
+        self.num_modalities = len(self.pick_modalities)
         self.split_modalities = split_modalities
         num_steps = 8  # the robot walked 8 steps on each terrain
         max_steps = 662  # this is obtained based on our data
@@ -73,8 +78,10 @@ class QCATDataset(Dataset):
 
     def __getitem__(self, index):
         if self.split_modalities:
-            sig = self.signals[index]['ft'][self.signal_start: self.signal_start + self.signal_length, :3], \
-                  self.signals[index]['ft'][self.signal_start: self.signal_start + self.signal_length, 3:]
+            sig = list()
+            for mod_idx, mod_dim in zip(self.pick_modalities, self.dim_modalities):
+                sig.append(self.signals[index]['ft'][self.signal_start: self.signal_start + self.signal_length,
+                           mod_idx:mod_idx + mod_dim])
         else:
             sig = [self.signals[index]['ft'][self.signal_start: self.signal_start + self.signal_length]]
 

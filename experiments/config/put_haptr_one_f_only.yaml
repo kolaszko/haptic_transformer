@@ -1,0 +1,8 @@
+dataset_type: "put"
+dataset_folder: "/media/mbed/internal/backup/haptr"
+dataset_file: "cropped.pickle"
+signal_length: 160
+signal_start: 0
+k_folds: 5
+pick_modalities: [0]
+split_modalities: True
