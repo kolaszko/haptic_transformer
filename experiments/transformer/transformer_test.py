@@ -7,7 +7,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 import yaml
-from skimage.transform import resize
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
@@ -16,12 +15,6 @@ import utils
 torch.manual_seed(42)
 
 from experiments.transformer.transformer_train import accuracy, batch_hits
-
-
-def filter(img, w=400, h=200):
-    img = resize(img, (h, w), preserve_range=True)
-    img = (img - img.min()) / (img.max() - img.min())
-    return np.multiply(img, 256).astype(np.uint8)
 
 
 def main(args):
@@ -51,7 +44,7 @@ def main(args):
     criterion = nn.CrossEntropyLoss(weight=w)
 
     # start
-    gif = utils.log.GIF(log_dir)
+    gif = utils.log.GIF(os.path.join(log_dir, 'images'))
     with SummaryWriter(log_dir=log_dir) as writer:
         mean_loss, correct = 0.0, 0
         model.train(False)
@@ -75,11 +68,11 @@ def main(args):
                 print(f'Running loss test: {loss.item()} in step: {step}')
 
                 # add weights to the gif
-                img = filter(misc["mod_weights"].cpu().numpy()[0])
+                img = utils.analysis.impose(misc["mod_weights"].cpu().numpy()[0], batch_data.cpu().numpy()[0])
                 gif.add(img)
 
         # save resulting gif
-        gif.save(remove_files=True)
+        gif.save()
 
         # calculate epoch accuracy
         epoch_accuracy = accuracy(correct, len(test_ds))

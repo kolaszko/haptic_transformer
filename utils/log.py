@@ -9,6 +9,7 @@ from torchsummary import summary
 
 class GIF:
     def __init__(self, folder, filename="result.gif", w=400, h=300):
+        os.makedirs(folder, exist_ok=True)
         self._folder = folder
         self._gif_path = os.path.join(folder, filename)
         self._writer = imageio.get_writer(self._gif_path, mode='I')
@@ -18,14 +19,14 @@ class GIF:
         self._next = 0
 
     def add(self, img):
-        if len(img.shape) == 2:
+        if len(img.shape) == 2 or len(img.shape) == 3:
             filename = os.path.join(self._folder, f'{self._next}.png')
             imageio.imwrite(filename, img)
             self._filenames.append(filename)
             self._next += 1
 
     def save(self, remove_files=False):
-        for filename in self._filenames:
+        for filename in range(self._filenames):
             image = imageio.imread(filename)
             self._writer.append_data(image)
 
