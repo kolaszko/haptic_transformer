@@ -2,17 +2,21 @@ import pickle
 
 from torch.utils.data import Dataset
 
+import data.helpers as helpers
+
 
 class HapticDataset(Dataset):
-    def __init__(self, path, key, split_modalities=False, signal_start=90, signal_length=90, standarize=True):
+    def __init__(self, path, key, pick_modalities, split_modalities=False, signal_start=90, signal_length=90,
+                 standarize=True):
 
         with open(path, 'rb') as f:
             pickled = pickle.load(f)
             self.signals = pickled[key]
 
         self.num_classes = 8
-        self.num_modalities = 2
-        self.dim_modalities = [3, 3]
+        self.pick_modalities = pick_modalities
+        self.num_modalities = len(self.pick_modalities)
+        self.dim_modalities = helpers.determine_dim_size([3, 3], pick_modalities)
         self.split_modalities = split_modalities
         self.mean, self.std = pickled['signal_stats']
         self.weights = pickled['classes_weights']
@@ -29,11 +33,7 @@ class HapticDataset(Dataset):
         return len(self.signals)
 
     def __getitem__(self, index):
-        if self.split_modalities:
-            sig = self.signals[index]['signal'][self.signal_start: self.signal_start + self.signal_length, :3], \
-                  self.signals[index]['signal'][self.signal_start: self.signal_start + self.signal_length, 3:]
-        else:
-            sig = [self.signals[index]['signal'][self.signal_start: self.signal_start + self.signal_length]]
-
+        ts = self.signals[index]['signal'][self.signal_start: self.signal_start + self.signal_length]
+        sig = helpers.prepare_batch(ts, self.split_modalities, self.pick_modalities, self.dim_modalities)
         label = self.signals[index]['label']
         return sig, label

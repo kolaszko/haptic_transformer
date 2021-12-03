@@ -57,34 +57,8 @@ class SignalEncoderLinear(nn.Module):
                 self.position_embedding = PositionalEncoding(projection_dim)
 
     def forward(self, inputs):
-        x = self.projection(inputs.float())
+        x = self.projection(inputs)
         if self.position_embedding:
             x = self.position_embedding(x)
 
-        return x
-
-
-class SignalEncoderExperimental(nn.Module):
-    def __init__(self, num_patches, projection_dim, position=True, modalities=6, kernel=8):
-        super().__init__()
-
-        self.num_patches = num_patches
-        self.kernel = kernel
-        self.projection = nn.Sequential(
-            nn.Conv1d(1, kernel, (3, 1), padding=(1, 0))
-        )
-        if position:
-            self.position_embedding = PositionalEncoding(8 * 6)
-
-        self.dropout = nn.Dropout(0.2)
-        self.projection_dim = projection_dim
-        self.modalities = modalities
-
-    def forward(self, inputs):
-        x = self.projection(inputs.float())
-        x = x.reshape((inputs.shape[0], self.num_patches, self.modalities * self.kernel))
-        if self.position_embedding:
-            x = self.position_embedding(x)
-
-        x = self.dropout(x)
         return x
