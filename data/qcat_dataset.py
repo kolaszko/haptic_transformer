@@ -23,9 +23,10 @@ class QCATDataset(Dataset):
                  standarize=True):
         self.num_classes = 6  # we have 6 terrain classes
         self.pick_modalities = pick_modalities
-        self.dim_modalities = helpers.determine_dim_size([3, 4], pick_modalities)
+        self.dim_modalities = helpers.determine_dim_size([12, 10], pick_modalities)
         self.num_modalities = len(self.pick_modalities)
         self.split_modalities = split_modalities
+        self.weights = [1.0 for _ in range(self.num_classes)]  # no info about weights of classes
         num_steps = 8  # the robot walked 8 steps on each terrain
         max_steps = 662  # this is obtained based on our data
         all_force_colms = 16  # this is based on number of all colms in the csv files
@@ -56,13 +57,13 @@ class QCATDataset(Dataset):
                                     all_imu_colms, relevant_imu_colms, min_num_speed, max_num_speed, "imu")
 
         self.signals = {
-            "ft": np.concatenate([forces, imu], -1),
+            "fimu": np.concatenate([forces, imu], -1),
             "label_one_hot": force_labels,
             "label": np.argmax(force_labels, -1)
         }
 
-        self.mean, self.std = np.mean(self.signals["ft"], (0, 1), keepdims=True), \
-                              np.std(self.signals["ft"], (0, 1), keepdims=True)
+        self.mean, self.std = np.mean(self.signals["fimu"], (0, 1), keepdims=True), \
+                              np.std(self.signals["fimu"], (0, 1), keepdims=True)
 
         self.signal_start = signal_start
         self.signal_length = signal_length
@@ -70,15 +71,15 @@ class QCATDataset(Dataset):
             self._standarize()
 
     def _standarize(self):
-        self.signals['ft'] = (self.signals['ft'] - self.mean) / self.std
+        self.signals['fimu'] = (self.signals['fimu'] - self.mean) / self.std
 
     def __len__(self):
-        return len(self.signals)
+        return len(self.signals["fimu"])
 
     def __getitem__(self, index):
-        ts = self.signals[index]['ft'][self.signal_start: self.signal_start + self.signal_length]
+        ts = self.signals['fimu'][index, self.signal_start: self.signal_start + self.signal_length]
         sig = helpers.prepare_batch(ts, self.split_modalities, self.pick_modalities, self.dim_modalities)
-        label = self.signals[index]['label']
+        label = self.signals['label'][index]
         return sig, label
 
 
