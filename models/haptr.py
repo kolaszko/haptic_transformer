@@ -75,11 +75,10 @@ class HAPTR_ModAtt(HAPTR):
 
             dummy_input = list()
             for mod_dim in self.dim_modalities:
-                shape = [num_batch, self.sequence_length, mod_dim, 1]
+                shape = [num_batch, self.sequence_length, mod_dim]
                 mod_input = torch.randn(shape, dtype=torch.float).to(device)
                 dummy_input.append(mod_input)
 
-            dummy_input = torch.concat(dummy_input, -1)
             self.forward(dummy_input)
 
 
