@@ -1,7 +1,5 @@
 import argparse
 import os
-import socket
-from datetime import datetime
 
 import numpy as np
 import torch
@@ -18,9 +16,7 @@ from experiments.transformer.transformer_train import accuracy, batch_hits
 
 
 def main(args):
-    current_time = datetime.now().strftime('%b%d_%H-%M-%S')
-    log_dir = os.path.join('haptr_runs_test', current_time + '_' + socket.gethostname())
-    os.makedirs(log_dir, exist_ok=True)
+    log_dir = utils.log.logdir_name('./', 'haptr_runs_test')
     utils.log.save_dict(args.__dict__, os.path.join(log_dir, 'args.txt'))
 
     # load data
@@ -72,8 +68,6 @@ def main(args):
                 # gif.add
 
                 weights.append(misc["mod_weights"].cpu().numpy())
-
-
 
         # save resulting gif
         # gif.save()

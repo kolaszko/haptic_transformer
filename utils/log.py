@@ -1,5 +1,7 @@
 import json
 import os
+import socket
+from datetime import datetime
 
 import imageio
 import numpy as np
@@ -77,3 +79,10 @@ def save_statistics(y_true, y_pred, model, path, input_size):
 
     with open(f'{stat_path}/stats.txt', 'w') as f:
         f.write(str(trainable_params.__repr__()))
+
+
+def logdir_name(folder, experiment_name):
+    current_time = datetime.now().strftime('%b%d_%H-%M-%S')
+    log_dir = os.path.join(folder, experiment_name, current_time + '_' + socket.gethostname())
+    os.makedirs(log_dir, exist_ok=True)
+    return log_dir

@@ -1,7 +1,5 @@
 import argparse
 import os
-import socket
-from datetime import datetime
 
 import numpy as np
 import torch
@@ -42,12 +40,7 @@ def batch_hits(y_hat, y_true):
 
 
 def main(args):
-    print(args)
-
-    # create a log folder
-    current_time = datetime.now().strftime('%b%d_%H-%M-%S')
-    log_dir = os.path.join('haptr_runs', current_time + '_' + socket.gethostname())
-    os.makedirs(log_dir, exist_ok=True)
+    log_dir = utils.log.logdir_name('./', 'haptr_runs')
     utils.log.save_dict(args.__dict__, os.path.join(log_dir, 'args.txt'))
 
     # load data

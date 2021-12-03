@@ -1,7 +1,5 @@
 import argparse
 import os
-import socket
-from datetime import datetime
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -17,9 +15,7 @@ torch.manual_seed(42)
 
 
 def main(args):
-    current_time = datetime.now().strftime('%b%d_%H-%M-%S')
-    log_dir = os.path.join('haptr_runs_test', current_time + '_' + socket.gethostname())
-    os.makedirs(log_dir, exist_ok=True)
+    log_dir = utils.log.logdir_name('./', 'haptr_runs_test_images')
     utils.log.save_dict(args.__dict__, os.path.join(log_dir, 'args.txt'))
 
     # load data
