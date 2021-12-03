@@ -58,11 +58,11 @@ def main(args):
     # setup a model
     if args.model_type == 'haptr_modatt':
         model = HAPTR_ModAtt(train_ds.num_classes,
-                             args.projection_dim, args.sequence_length, args.nheads, args.num_encoder_layers,
+                             args.projection_dim, train_ds.signal_length, args.nheads, args.num_encoder_layers,
                              args.feed_forward, args.dropout, train_ds.dim_modalities, train_ds.num_modalities)
     else:
         model = HAPTR(train_ds.num_classes,
-                      args.projection_dim, args.sequence_length, args.nheads, args.num_encoder_layers,
+                      args.projection_dim, train_ds.signal_length, args.nheads, args.num_encoder_layers,
                       args.feed_forward, args.dropout, train_ds.dim_modalities, train_ds.num_modalities)
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")

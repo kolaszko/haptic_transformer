@@ -84,10 +84,10 @@ def main(args):
         w1, w2 = w[:, 0], w[:, 1]
         wmean1, wmean2 = w1.mean(), w2.mean()
         wmedian1, wmedian2 = np.median(w1), np.median(w2)
-        writer.add_scalar('weights/mean/mod_0', wmean1, i)
-        writer.add_scalar('weights/mean/mod_1', wmean2, i)
-        writer.add_scalar('weights/median/mod_0', wmedian1, i)
-        writer.add_scalar('weights/median/mod_1', wmedian2, i)
+        writer.add_scalar('weights/mean/mod_0', wmean1, 0)
+        writer.add_scalar('weights/mean/mod_1', wmean2, 0)
+        writer.add_scalar('weights/median/mod_0', wmedian1, 0)
+        writer.add_scalar('weights/median/mod_1', wmedian2, 0)
 
         print('========== ACC ==========')
         print(best_acc_test)
