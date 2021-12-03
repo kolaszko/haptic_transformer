@@ -1,14 +1,11 @@
 import os
 
-import torch
-
 from data import HapticDataset, QCATDataset
 
 
 def load_samples_to_device(data, device):
     if len(data[0]) > 1:
-        tensor_list = [s.to(device).float() for s in data[0]]
-        s = torch.stack(tensor_list, -1)
+        s = [s.to(device).float() for s in data[0]]  # in case of split modalities return a list
     else:
         s = data[0][0].to(device).float()
         s.unsqueeze(1)

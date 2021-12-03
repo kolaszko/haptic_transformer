@@ -61,14 +61,13 @@ class HAPTR_ModAtt(HAPTR):
 
     def forward(self, inputs):
         xw, w = self.mod_attn(inputs)
-        x = inputs.view(*inputs.shape[:-2], -1)
+        x = torch.cat(inputs, -1)
         x = self.signal_encoder(x)
         x = x.squeeze(1).permute(1, 0, 2)
         x = self.transformer(x)
         x = torch.concat([x, xw], -1)
         x = x.permute(1, 0, 2)
         x = self.mlp_head(x)
-
         return x, {"mod_weights": w}
 
     def warmup(self, device, num_reps=1, num_batch=1):
@@ -98,7 +97,7 @@ class ModalityAttention(nn.Module):
         self.flat_nn = nn.ModuleList([FlattenModality(dim, dropout) for dim in self.dim_modalities])
 
     def forward(self, inputs):
-        mods = torch.stack([self.flat_nn[i](inputs[..., i]) for i in range(self.num_modalities)])
+        mods = torch.stack([self.flat_nn[i](inputs[i]) for i in range(self.num_modalities)])
         q = mods.permute(2, 1, 0)
         x, w = self.self_attn(q, mods, mods, need_weights=True)
         return x, w
