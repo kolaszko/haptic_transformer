@@ -1,6 +1,6 @@
 def determine_dim_size(dim_modalities, pick_modalities):
     if len(pick_modalities) < len(dim_modalities):
-        dim_modalities = [dim_modalities[i] for i in range(len(pick_modalities))]
+        dim_modalities = [dim_modalities[mod_idx] for mod_idx in pick_modalities]
     return dim_modalities
 
 def prepare_batch(multidimensional_ts, split_modalities, pick_modalities, dim_modalities):
