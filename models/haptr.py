@@ -12,11 +12,11 @@ class HAPTR(nn.Module):
         self.dim_modalities = dim_modalities
         self.num_modalities = num_modalities
 
-        # encodes position of a temporal position of values
+        # encodes a temporal position of values in timeseries
         self.signal_encoder = SignalEncoderLinear(sequence_length, projection_dim, num_channels=sum(dim_modalities),
                                                   learnable=False)
 
-        # create a transformer layer that converts input time series into other timeseries of features
+        # create a transformer layer that converts input timeseries into feature timeseries
         self.transformer = nn.TransformerEncoder(encoder_layer=nn.TransformerEncoderLayer(d_model=projection_dim,
                                                                                           nhead=nheads,
                                                                                           dropout=dropout,
@@ -25,11 +25,12 @@ class HAPTR(nn.Module):
                                                  num_layers=num_encoder_layers,
                                                  norm=nn.LayerNorm(projection_dim))
 
-        # flatten each timestep of N channels into one channel (each timestep separately)
+        # flatten each timestep with N channels into signle channel (each timestep separately)
         self.fuse = Conv1D(projection_dim, 1, dropout)
 
-        # classify the resulting timeserie
+        # classify resulting timeseries
         self.mlp_head = nn.Sequential(
+            nn.BatchNorm1d(sequence_length),
             nn.Dropout(dropout),
             nn.Linear(sequence_length, num_classes)
         )
@@ -68,6 +69,7 @@ class HAPTR_ModAtt(HAPTR):
     def warmup(self, device, num_reps=1, num_batch=1):
         for _ in range(num_reps):
             dummy_input = list()
+
             for mod_dim in self.dim_modalities:
                 shape = [num_batch, self.sequence_length, mod_dim]
                 mod_input = torch.randn(shape, dtype=torch.float).to(device)
@@ -106,8 +108,10 @@ class Conv1D(nn.Module):
     def __init__(self, dim_modality_in, dim_modality_out, dropout=0.1):
         super().__init__()
         self.flatten = nn.Sequential(
-            nn.Dropout(dropout),
-            nn.Conv1d(dim_modality_in, dim_modality_out, 1)
+            nn.Conv1d(dim_modality_in, dim_modality_out, 1),
+            nn.BatchNorm1d(dim_modality_out),
+            nn.GELU(),
+            nn.Dropout(dropout)
         )
 
     def forward(self, x, squeeze_output=True):
@@ -117,6 +121,7 @@ class Conv1D(nn.Module):
         RETURNS: BATCH x LENGTH x CHANNELS
         '''
         x = self.flatten(x).permute(0, 2, 1)
+
         if squeeze_output:
             x = x.squeeze(-1)
         return x
