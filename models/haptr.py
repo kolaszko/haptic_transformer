@@ -26,7 +26,7 @@ class HAPTR(nn.Module):
                                                  norm=nn.LayerNorm(projection_dim))
 
         # flatten each timestep with N channels into signle channel (each timestep separately)
-        self.fuse = Conv1D(projection_dim, 1, dropout)
+        self.conv1d = Conv1D(projection_dim, 1, dropout)
 
         # classify resulting timeseries
         self.mlp_head = nn.Sequential(
@@ -38,7 +38,7 @@ class HAPTR(nn.Module):
     def forward(self, inputs):
         x = self.signal_encoder(inputs)
         x = self.transformer(x.squeeze(1).permute(1, 0, 2))
-        x = self.fuse(x.permute(1, 2, 0))
+        x = self.conv1d(x.permute(1, 2, 0))
         x = self.mlp_head(x)
         return x, {}  # no weights
 
@@ -56,13 +56,13 @@ class HAPTR_ModAtt(HAPTR):
                          dropout, dim_modalities, num_modalities)
 
         self.mod_attn = ModalityAttention(num_modalities, dim_modalities, sequence_length, dropout)
-        self.fuse = Conv1D(projection_dim + num_modalities, 1, dropout)
+        self.conv1d = Conv1D(projection_dim + num_modalities, 1, dropout)
 
     def forward(self, inputs):
         x_weighted, weights = self.mod_attn(inputs)
         x = self.signal_encoder(torch.cat(inputs, -1))
         x = self.transformer(x.squeeze(1).permute(1, 0, 2))
-        x = self.fuse(torch.cat([x, x_weighted], -1).permute(1, 2, 0))
+        x = self.conv1d(torch.cat([x, x_weighted], -1).permute(1, 2, 0))
         x = self.mlp_head(x)
         return x, {"mod_weights": weights}
 
