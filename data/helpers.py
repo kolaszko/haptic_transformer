@@ -13,5 +13,5 @@ def prepare_batch(multidimensional_ts, split_modalities, pick_modalities, dim_mo
             start_idx = end_idx
 
     else:
-        sig = [multidimensional_ts]
+        sig = multidimensional_ts
     return sig

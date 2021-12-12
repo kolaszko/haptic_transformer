@@ -37,8 +37,10 @@ class HAPTR(nn.Module):
 
     def forward(self, inputs):
         x = self.signal_encoder(inputs)
-        x = self.transformer(x.squeeze(1).permute(1, 0, 2))
-        x = self.conv1d(x.permute(1, 2, 0))
+        transformer_input = x.squeeze(1).permute(1, 0, 2)
+        x = self.transformer(transformer_input)
+        conv_input = x.permute(1, 2, 0)
+        x = self.conv1d(conv_input)
         x = self.mlp_head(x)
         return x, {}  # no weights
 
@@ -61,8 +63,10 @@ class HAPTR_ModAtt(HAPTR):
     def forward(self, inputs):
         x_weighted, weights = self.mod_attn(inputs)
         x = self.signal_encoder(torch.cat(inputs, -1))
-        x = self.transformer(x.squeeze(1).permute(1, 0, 2))
-        x = self.conv1d(torch.cat([x, x_weighted], -1).permute(1, 2, 0))
+        transformer_input = x.squeeze(1).permute(1, 0, 2)
+        x = self.transformer(transformer_input)
+        conv_input = torch.cat([x, x_weighted], -1).permute(1, 2, 0)
+        x = self.conv1d(conv_input)
         x = self.mlp_head(x)
         return x, {"mod_weights": weights}
 
@@ -91,16 +95,15 @@ class ModalityAttention(nn.Module):
         # attention layer with one head
         self.self_attn = nn.MultiheadAttention(embed_dim=self.num_modalities,
                                                num_heads=1,
-                                               dropout=self.dropout,
-                                               kdim=self.seq_length,
-                                               vdim=self.seq_length)
+                                               dropout=self.dropout)
 
         # flatten modalities to obtain 1 weight per each
         self.flat_nn = nn.ModuleList([Conv1D(dim, 1, dropout) for dim in self.dim_modalities])
 
     def forward(self, inputs):
         mods = torch.stack([self.flat_nn[i](inputs[i].permute(0, 2, 1)) for i in range(self.num_modalities)])
-        x, w = self.self_attn(query=mods.permute(2, 1, 0), key=mods, value=mods, need_weights=True)
+        sa_input = mods.permute(2, 1, 0)
+        x, w = self.self_attn(query=sa_input, key=sa_input, value=sa_input, need_weights=True)
         return x, w
 
 
@@ -116,7 +119,7 @@ class Conv1D(nn.Module):
 
     def forward(self, x, squeeze_output=True):
         '''
-        Convolves each timestep separately.
+        Convolves each timestep with kernel separately.
         INPUT: BATCH x CHANNELS x LENGTH
         RETURNS: BATCH x LENGTH x CHANNELS
         '''
