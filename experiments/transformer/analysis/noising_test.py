@@ -79,21 +79,13 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset-config-file', type=str,
-                        default="/home/mbed/Projects/haptic_transformer/experiments/config/qcat_haptr_12_split.yaml")
-    # parser.add_argument('--model-path', type=str,
-    #                     default="/media/mbed/internal/RAS2022/PUT_haptr_light_modoff-20211210T114933Z-001/PUT_haptr_light_modoff/Dec03_11-50-01_mbed/test_model")
-
-    # parser.add_argument('--model-path', type=str,
-    #                     default="/media/mbed/internal/RAS2022/PUT_haptr_light_modoff-20211210T114933Z-001/PUT_haptr_light_modoff/Dec03_11-50-01_mbed/test_model")
+                        default="/home/mbed/Projects/haptic_transformer/experiments/config/put_split_haptr_12.yaml")
 
     parser.add_argument('--model-path', type=str,
-                        default="/media/mbed/internal/RAS2022/QCAT_haptr_light_modoff-20211210T114958Z-001/QCAT_haptr_light_modoff/Dec03_15-36-36_mbed/test_model")
-
-    parser.add_argument('--model-path', type=str,
-                        default="/media/mbed/internal/RAS2022/QCAT_haptr_light_modoff-20211210T114958Z-001/QCAT_haptr_light_modoff/Dec03_16-35-14_mbed/test_model")
+                        default="/home/mbed/Projects/haptic_transformer/experiments/transformer/haptr_runs/Dec16_11-33-08_mbed/test_model")
 
     parser.add_argument('--batch-size', type=int, default=32)
-    parser.add_argument('--suffix', type=str, default="QCAT_haptrpp")
+    parser.add_argument('--suffix', type=str, default="PUT_HAPTR")
 
     args, _ = parser.parse_known_args()
     main(args)
