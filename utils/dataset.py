@@ -4,11 +4,10 @@ from data import HapticDataset, QCATDataset
 
 
 def load_samples_to_device(data, device):
-    if len(data[0]) > 1:
+    if type(data[0]) is list:
         s = [s.to(device).float() for s in data[0]]  # in case of split modalities return a list
     else:
-        s = data[0][0].to(device).float()
-        s.unsqueeze(1)
+        s = data[0].to(device).float()
     labels = data[-1].to(device)
     return s, labels
 

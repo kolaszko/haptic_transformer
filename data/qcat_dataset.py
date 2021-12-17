@@ -71,7 +71,8 @@ class QCATDataset(Dataset):
             self._standarize()
 
     def _standarize(self):
-        self.signals['fimu'] = (self.signals['fimu'] - self.mean) / self.std
+        # do not normalize quaternions
+        self.signals['fimu'][..., :-4] = (self.signals['fimu'][..., :-4] - self.mean[..., :-4]) / self.std[..., :-4]
 
     def __len__(self):
         return len(self.signals["fimu"])
