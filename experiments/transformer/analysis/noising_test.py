@@ -48,16 +48,19 @@ def main(args):
                 else:
                     mod_size = batch_data[..., noised_mod_idx:noised_mod_idx + dim].size()
 
-                noise = ((2.0 * torch.rand(size=mod_size) - 1.0)).to(device)
+                bias = 0.0
+                noise = ((0.5 * torch.rand(size=mod_size) - 0.5)).to(device)
                 for i in range(noise_its):
+                    current_bias = bias * i / noise_its
                     current_noise = noise * i / noise_its
+                    additive_noise = current_bias + current_noise
 
                     if type(batch_data) is list:
                         x = [bd.clone() for bd in batch_data]
-                        x[noised_mod_idx] += current_noise
+                        x[noised_mod_idx] += additive_noise
                     else:
                         x = batch_data.clone()
-                        x[..., noised_mod_idx:noised_mod_idx + dim] += current_noise
+                        x[..., noised_mod_idx:noised_mod_idx + dim] += additive_noise
 
                     out, misc = model(x)
 
@@ -72,20 +75,22 @@ def main(args):
                 modality_data["hits"].append(batch_hit)
 
             total_data[f"noised_modality_{noised_mod_idx}"] = modality_data
+            print(f"Noising modality {noised_mod_idx} finished.")
 
-    utils.log.save_numpy(total_data, f"./{args.suffix}_weights_analysis.npy")
+    utils.log.save_numpy(total_data, f"./{args.suffix}.npy")
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset-config-file', type=str,
-                        default="/home/mbed/Projects/haptic_transformer/experiments/config/put_split_haptr_12.yaml")
 
-    parser.add_argument('--model-path', type=str,
-                        default="/home/mbed/Projects/haptic_transformer/experiments/transformer/haptr_runs/Dec16_11-33-08_mbed/test_model")
+    parser.add_argument('--dataset-config-file', type=str, default="/home/mbed/Projects/haptic_transformer/experiments/config/put_haptr_12.yaml")
+    parser.add_argument('--model-path', type=str, default="/home/mbed/Projects/haptic_transformer/experiments/transformer/HAPTR_vs_HAPTRmodatt/HAPTR/test_model")
+    parser.add_argument('--suffix', type=str, default="PUT_HAPTR2")
+    # parser.add_argument('--dataset-config-file', type=str, default="/home/mbed/Projects/haptic_transformer/experiments/config/put_split_haptr_12.yaml")
+    # parser.add_argument('--model-path', type=str, default="/home/mbed/Projects/haptic_transformer/experiments/transformer/HAPTR_vs_HAPTRmodatt/HAPTR_modatt/test_model")
+    # parser.add_argument('--suffix', type=str, default="PUT_HAPTR_modatt2")
 
     parser.add_argument('--batch-size', type=int, default=32)
-    parser.add_argument('--suffix', type=str, default="PUT_HAPTR")
 
     args, _ = parser.parse_known_args()
     main(args)
