@@ -26,7 +26,6 @@ class HAPTR(nn.Module):
                                                  norm=nn.LayerNorm(projection_dim))
 
         # flatten each timestep with N channels into signle channel (each timestep separately)
-        # self.conv1d = Conv1D(projection_dim, 1, dropout)
         self.pooling = nn.AvgPool1d(projection_dim)
 
         # classify resulting timeseries
@@ -39,8 +38,7 @@ class HAPTR(nn.Module):
     def forward(self, inputs):
         x = self.signal_encoder(inputs)
         transformer_input = x.squeeze(1).permute(1, 0, 2)
-        x = self.transformer(transformer_input)
-        x = x.permute(1, 0, 2)
+        x = self.transformer(transformer_input).permute(1, 0, 2)
         x = self.pooling(x).squeeze(-1)
         x = self.mlp_head(x)
         return x, {}  # no weights
@@ -59,15 +57,18 @@ class HAPTR_ModAtt(HAPTR):
                          dropout, dim_modalities, num_modalities)
 
         self.mod_attn = ModalityAttention(num_modalities, dim_modalities, sequence_length, dropout)
-        # self.conv1d = Conv1D(projection_dim + num_modalities, 1, dropout)
-        self.pooling = nn.AvgPool1d(projection_dim + num_modalities)
+
+        # encodes a temporal position of values in timeseries
+        self.signal_encoder = SignalEncoderLinear(sequence_length, projection_dim,
+                                                  num_channels=sum(dim_modalities) + num_modalities,
+                                                  learnable=False)
 
     def forward(self, inputs):
         x_weighted, weights = self.mod_attn(inputs)
-        x = self.signal_encoder(torch.cat(inputs, -1))
+        x = torch.cat([torch.cat(inputs, -1), x_weighted.permute(1, 0, 2)], -1)
+        x = self.signal_encoder(x)
         transformer_input = x.squeeze(1).permute(1, 0, 2)
-        x = self.transformer(transformer_input)
-        x = torch.cat([x, x_weighted], -1).permute(1, 0, 2)
+        x = self.transformer(transformer_input).permute(1, 0, 2)
         x = self.pooling(x).squeeze(-1)
         x = self.mlp_head(x)
         return x, {"mod_weights": weights}
