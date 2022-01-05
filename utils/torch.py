@@ -19,5 +19,5 @@ def measure_interence_time(model, repetitions, device):
             start_time = time.time()
             _ = model.warmup(device)
             end_time = time.time()
-            timings = (end_time - start_time) * 1000
+            timings.append((end_time - start_time) * 1000)
     return timings
