@@ -1,8 +1,9 @@
 dataset_type: "qcat"
-dataset_folder: "/media/mbed/internal/backup/haptr/QCAT_legged_robot_terrain_classification_dataset"
-dataset_file: ""
+dataset_folder: "/media/mbed/internal/backup/haptr"
+dataset_file: "qcat.pickle"
 signal_length: 662
 signal_start: 0
 k_folds: 5
-pick_modalities: [0, 1]
+pick_modalities: [ 0, 1 ]
 split_modalities: True
+from_data: false
