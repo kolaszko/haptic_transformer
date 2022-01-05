@@ -16,7 +16,7 @@ from models import HAPTR, HAPTR_ModAtt
 
 torch.manual_seed(47)
 DEBUG = False
-FOLDS = 2
+FOLDS = 10
 
 
 def main(args):
@@ -45,17 +45,17 @@ def main(args):
     kfold = KFold(n_splits=FOLDS, shuffle=True)
 
     # K-fold Cross Validation model evaluation
-    for fold, (train_ids, test_ids) in enumerate(kfold.split(total_dataset)):
+    for fold, (train_ids, val_ids) in enumerate(kfold.split(total_dataset)):
 
         # sample dataset for the k-fold
         train_subsampler = torch.utils.data.SubsetRandomSampler(train_ids)
-        test_subsampler = torch.utils.data.SubsetRandomSampler(test_ids)
+        val_subsampler = torch.utils.data.SubsetRandomSampler(val_ids)
 
         # define data loaders for training and testing data in this fold
         train_dataloader = torch.utils.data.DataLoader(total_dataset, batch_size=args.batch_size,
                                                        sampler=train_subsampler)
-        test_dataloader = torch.utils.data.DataLoader(total_dataset, batch_size=args.batch_size,
-                                                      sampler=test_subsampler)
+        val_dataloader = torch.utils.data.DataLoader(total_dataset, batch_size=args.batch_size,
+                                                     sampler=val_subsampler)
 
         # setup a model for the k-th fold
         if args.model_type == 'haptr_modatt':
@@ -97,8 +97,8 @@ def main(args):
                     correct += batch_hits(out, batch_labels)
 
                 # write to the tensorboard
-                writer.add_scalar(f'loss_fold_{fold}/train', mean_loss / len(total_dataset), epoch)
-                writer.add_scalar(f'accuracy_{fold}/train', accuracy(correct, len(total_dataset)), epoch)
+                writer.add_scalar(f'loss_{fold}/train', mean_loss / len(train_ids), epoch)
+                writer.add_scalar(f'accuracy_{fold}/train', accuracy(correct, len(train_ids)), epoch)
                 writer.add_scalar(f'learning_rate_{fold}', optimizer.param_groups[0]['lr'], epoch)
                 scheduler.step()
 
@@ -108,7 +108,7 @@ def main(args):
                 # validation loop
                 y_pred, y_true = [], []
                 with torch.no_grad():
-                    for step, data in enumerate(test_dataloader):
+                    for step, data in enumerate(val_dataloader):
                         batch_data, batch_labels = utils.dataset.load_samples_to_device(data, device)
                         out, loss = query(batch_data, batch_labels, model, criterion)
                         mean_loss += loss.item()
@@ -120,7 +120,7 @@ def main(args):
                         y_true.extend(batch_labels.data.cpu().numpy())
 
                 # calculate epoch accuracy
-                epoch_accuracy = accuracy(correct, len(val_ds))
+                epoch_accuracy = accuracy(correct, len(val_ids))
                 print(f'Fold {fold}, epoch {epoch}, validation accuracy: {epoch_accuracy}')
 
                 if epoch_accuracy > best_epoch_accuracy:
@@ -132,8 +132,8 @@ def main(args):
                     y_true_val = y_true
 
                 # write to the tensorboard
-                writer.add_scalar(f'loss_{fold}/val', mean_loss / len(val_ds), epoch)
-                writer.add_scalar(f'accurac_{fold}y/val', epoch_accuracy, epoch)
+                writer.add_scalar(f'loss_{fold}/val', mean_loss / len(val_ids), epoch)
+                writer.add_scalar(f'accuracy_{fold}/val', epoch_accuracy, epoch)
 
             utils.log.save_statistics(y_true_val, y_pred_val, model, os.path.join(log_dir, f'val_{fold}'), data_shape)
             writer.flush()
