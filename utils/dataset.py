@@ -87,7 +87,7 @@ def concatenate_datasets(datasets: list):
     # thats why we need custom concatenate method
     full_ds = datasets[0]
     for ds in datasets[1:]:
-        full_ds.concatenate(ds)
+        full_ds += ds  # __add__ method implemented
     return full_ds
 
 
