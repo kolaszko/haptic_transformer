@@ -1,6 +1,5 @@
 import pickle
 
-import numpy as np
 from torch.utils.data import Dataset
 
 import data.helpers as helpers
@@ -39,13 +38,9 @@ class HapticDataset(Dataset):
         label = self.signals[index]['label']
         return sig, label
 
-    def concatenate(self, other_haptic: Dataset):
-        raise NotImplementedError("Not implemented. Waiting in the backlog.")
-        # self.mean = (self.mean + other_haptic.mean) / 2
-        # self.std = (self.std + other_haptic.std) / 2
-        #
-        # self.signals["fimu"] = np.concatenate([self.signals["fimu"], other_qcat.signals["fimu"]], 0)
-        # self.signals["label_one_hot"] = np.concatenate(
-        #     [self.signals["label_one_hot"], other_qcat.signals["label_one_hot"]], 0)
-        # self.signals["label"] = np.concatenate([self.signals["label"], other_qcat.signals["label"]], 0)
-        # return self
+    def __add__(self, other_haptic):
+        self.mean = (self.mean + other_haptic.mean) / 2.0
+        self.std = (self.std + other_haptic.std) / 2.0
+        self.signals += other_haptic.signals
+        self.weights = (self.weights + other_haptic.weights) / 2.0
+        return self

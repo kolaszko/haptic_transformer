@@ -54,9 +54,9 @@ class QCATDataset(Dataset):
         label = self.signals['label'][index]
         return sig, label
 
-    def concatenate(self, other_qcat: Dataset):
-        self.mean = (self.mean + other_qcat.mean) / 2
-        self.std = (self.std + other_qcat.std) / 2
+    def __add__(self, other_qcat):
+        self.mean = (self.mean + other_qcat.mean) / 2.0
+        self.std = (self.std + other_qcat.std) / 2.0
 
         self.signals["fimu"] = np.concatenate([self.signals["fimu"], other_qcat.signals["fimu"]], 0)
         self.signals["label_one_hot"] = np.concatenate(
