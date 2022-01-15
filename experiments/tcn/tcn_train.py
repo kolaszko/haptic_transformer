@@ -13,8 +13,8 @@ from torch.utils.tensorboard import SummaryWriter
 from torchsummary import summary
 
 import utils
-from data import HapticDataset
-from models import TemporalConvNet
+from submodules.haptic_transformer.data import HapticDataset
+from submodules.haptic_transformer.models import TemporalConvNet
 
 
 def main(args):

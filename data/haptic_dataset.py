@@ -2,7 +2,7 @@ import pickle
 
 from torch.utils.data import Dataset
 
-import data.helpers as helpers
+import submodules.haptic_transformer.data.helpers as helpers
 
 
 class HapticDataset(Dataset):

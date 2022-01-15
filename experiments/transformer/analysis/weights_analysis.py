@@ -3,7 +3,7 @@ import numpy as np
 import torch
 from matplotlib.backends.backend_pdf import PdfPages
 
-from experiments.transformer.transformer_train import accuracy
+from submodules.haptic_transformer.experiments.transformer.transformer_train import accuracy
 
 torch.manual_seed(42)
 

@@ -3,7 +3,7 @@ import pickle
 
 from torch.utils.data import Dataset
 
-from data import HapticDataset, QCATDataset
+from submodules.haptic_transformer.data import HapticDataset, QCATDataset
 
 
 def load_dataset(config):

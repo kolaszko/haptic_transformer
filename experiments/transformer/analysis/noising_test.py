@@ -5,7 +5,7 @@ import yaml
 from torch.utils.data import DataLoader
 
 import utils
-from experiments.transformer.transformer_train import batch_hits
+from submodules.haptic_transformer.experiments.transformer.transformer_train import batch_hits
 
 torch.manual_seed(42)
 

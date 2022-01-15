@@ -16,7 +16,7 @@ import pickle
 import numpy as np
 from torch.utils.data import Dataset
 
-import data.helpers as helpers
+import submodules.haptic_transformer.data.helpers as helpers
 
 
 class QCATDataset(Dataset):

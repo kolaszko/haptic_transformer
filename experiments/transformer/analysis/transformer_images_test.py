@@ -9,7 +9,7 @@ import yaml
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-import utils
+import submodules.haptic_transformer.utils as utils
 
 torch.manual_seed(42)
 

@@ -4,7 +4,7 @@ import yaml
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from sktime.classification.all import (KNeighborsTimeSeriesClassifier, ROCKETClassifier)
 
-import utils
+import submodules.haptic_transformer.utils as utils
 
 
 def main(args):

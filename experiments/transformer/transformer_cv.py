@@ -11,8 +11,8 @@ from torch.utils.tensorboard import SummaryWriter
 from torchsummary import summary
 
 import utils
-from experiments.transformer.transformer_train import accuracy, batch_hits, query, train
-from models import HAPTR, HAPTR_ModAtt
+from submodules.haptic_transformer.experiments.transformer.transformer_train import accuracy, batch_hits, query, train
+from submodules.haptic_transformer.models import HAPTR, HAPTR_ModAtt
 
 torch.manual_seed(47)
 DEBUG = False

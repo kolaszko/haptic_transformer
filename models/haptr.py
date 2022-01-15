@@ -40,7 +40,12 @@ class HAPTR(nn.Module):
         transformer_input = x.squeeze(1).permute(1, 0, 2)
         x = self.transformer(transformer_input).permute(1, 0, 2)
         x = self.pooling(x).squeeze(-1)
-        x = self.mlp_head(x)
+
+        try:
+            x = self.mlp_head(x)
+        except ValueError:
+            x = self.mlp_head(x)
+
         return x, {}  # no weights
 
     def warmup(self, device, num_reps=1, num_batch=1):

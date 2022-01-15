@@ -10,7 +10,7 @@ from torch.utils.tensorboard import SummaryWriter
 from torchsummary import summary
 
 import utils
-from models import HAPTR, HAPTR_ModAtt
+from submodules.haptic_transformer.models import HAPTR, HAPTR_ModAtt
 
 torch.manual_seed(42)
 DEBUG = False
