@@ -1,5 +1,5 @@
 dataset_type: "qcat"
-dataset_folder: "/media/mbed/internal/backup/haptr"
+dataset_folder: "/home/mbed/Projects"
 dataset_file: "qcat.pickle"
 signal_length: 662
 signal_start: 0

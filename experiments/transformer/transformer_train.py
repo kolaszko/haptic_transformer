@@ -25,6 +25,9 @@ def train(x, y_true, model, criterion, optimizer):
 
 
 def query(x, y_true, model, criterion):
+    if len(x) == 1:
+        x = x[0]
+
     y_hat, w = model(x)
     loss = criterion(y_hat, y_true)
     return y_hat, loss
@@ -184,14 +187,14 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset-config-file', type=str,
-                        default="/home/mbed/Projects/haptic_transformer/experiments/config/put_haptr_ft.yaml")
+                        default="/home/mbed/Projects/haptic_transformer/experiments/config/put_haptr_12.yaml")
     parser.add_argument('--epochs', type=int, default=2000)
     parser.add_argument('--batch-size', type=int, default=128)
     parser.add_argument('--num-classes', type=int, default=8)
     parser.add_argument('--projection-dim', type=int, default=16)
     parser.add_argument('--sequence-length', type=int, default=160)
-    parser.add_argument('--nheads', type=int, default=8)
-    parser.add_argument('--num-encoder-layers', type=int, default=8)
+    parser.add_argument('--nheads', type=int, default=2)
+    parser.add_argument('--num-encoder-layers', type=int, default=3)
     parser.add_argument('--feed-forward', type=int, default=128)
     parser.add_argument('--dropout', type=float, default=.1)
     parser.add_argument('--lr', type=float, default=1e-3)
@@ -199,7 +202,7 @@ if __name__ == '__main__':
     parser.add_argument('--weight-decay', type=float, default=1e-3)
     parser.add_argument('--eta-min', type=float, default=1e-4)
     parser.add_argument('--repetitions', type=int, default=300)
-    parser.add_argument('--model-type', type=str, default='haptr')
+    parser.add_argument('--model-type', type=str, default='haptr_modatt')
 
     args, _ = parser.parse_known_args()
     main(args)
