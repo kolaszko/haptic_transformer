@@ -9,10 +9,9 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 import utils
+from experiments.transformer.transformer_train import accuracy, batch_hits
 
 torch.manual_seed(42)
-
-from experiments.transformer.transformer_train import accuracy, batch_hits
 
 
 def main(args):
@@ -115,10 +114,8 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset-config-file', type=str,
-                        default="/home/mbed/Projects/haptic_transformer/experiments/config/config_put.yaml")
-    parser.add_argument('--model-path', type=str,
-                        default="/home/mbed/Projects/haptic_transformer/experiments/transformer/haptr_runs/Dec02_14-24-18_mbed/test_model")
+    parser.add_argument('--dataset-config-file', type=str, default="config/config_put.yaml")
+    parser.add_argument('--model-path', type=str, default="test_model")
     parser.add_argument('--batch-size', type=int, default=1)
     parser.add_argument('--num-classes', type=int, default=8)
     parser.add_argument('--repetitions', type=int, default=300)
